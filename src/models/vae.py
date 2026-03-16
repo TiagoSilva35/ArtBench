@@ -106,10 +106,8 @@ class VAE(nn.Module):
             # tensors shape: (N, C, H, W), values in [-1, 1]
             tensors = (tensors.cpu().clamp(-1, 1) + 1) / 2  # to [0, 1]
             n = tensors.size(0)
-            fig, axes = plt.subplots(1, n, figsize=(n * 2, 2))
-            if n == 1:
-                axes = [axes]
-            for ax, img in zip(axes, tensors):
+            fig, axes = plt.subplots(1, n, figsize=(n * 2, 2), squeeze=False)
+            for ax, img in zip(axes[0], tensors):
                 ax.imshow(img.permute(1, 2, 0).numpy())
                 ax.axis('off')
             fig.suptitle(title)
