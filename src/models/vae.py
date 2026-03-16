@@ -1,0 +1,100 @@
+import torch
+from torch import nn
+from torch.nn import functional as F
+from matplotlib import pyplot as plt
+
+class VAE(nn.Module):
+    def __init__(self, latent_dim: int = 256, num_channels: int = 3, base_channels: int = 32):
+        super().__init__()
+        self.latent_dim = latent_dim
+        self.base_channels = base_channels
+        # adam optimizer
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+
+        self.encoder = nn.Sequential(
+            nn.Conv2d(num_channels, base_channels, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(base_channels),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(base_channels, base_channels * 2, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(base_channels * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(base_channels * 2, base_channels * 4, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(base_channels * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(base_channels * 4, base_channels * 8, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(base_channels * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        # we dont do batch normalization in the final layer because
+        # it introduces aditional stochasticity beyound the sampling stochasticity
+        self.enc_out_dim = base_channels * 8 * 2 * 2
+        self.fc_mu = nn.Linear(self.enc_out_dim, latent_dim)
+        self.fc_logvar = nn.Linear(self.enc_out_dim, latent_dim)
+        self.fc_dec = nn.Linear(latent_dim, self.enc_out_dim)
+
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(base_channels * 8, base_channels * 4, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(base_channels * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.ConvTranspose2d(base_channels * 4, base_channels * 2, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(base_channels * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.ConvTranspose2d(base_channels * 2, base_channels, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(base_channels),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.ConvTranspose2d(base_channels, num_channels, kernel_size=4, stride=2, padding=1),
+            nn.Tanh(),
+        )
+
+    def sample(self, num_samples: int, device: torch.device) -> torch.Tensor:
+        z = torch.randn(num_samples, self.latent_dim, device=device)
+        return self.decode(z)
+    
+    def encode(self, x: torch.Tensor):
+        h = self.encoder(x).view(x.size(0), -1)
+        mu = self.fc_mu(h)
+        logvar = self.fc_logvar(h)
+        return mu, logvar
+
+    def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+
+    def decode(self, z: torch.Tensor) -> torch.Tensor:
+        h = self.fc_dec(z)
+        h = h.view(z.size(0), self.base_channels * 8, 2, 2)
+        return self.decoder(h)
+
+    def forward(self, x: torch.Tensor):
+        # encode, reparameterize, decode
+        mu, logvar = self.encode(x)
+        z = self.reparameterize(mu, logvar)
+        # Decode to get reconstruction
+        recon = self.decode(z)
+        return recon, mu, logvar
+
+    def normal_log_pdf(self, sample: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
+        # used to calculate log N(sample | mu, exp(logvar))
+        log2pi = torch.log(torch.tensor(2 * torch.pi, device=sample.device))
+        return -0.5*((sample - mu)**2*torch.exp(-logvar) + logvar + log2pi)
+    
+    def compute_loss(self, x, beta=1.0):
+        # negative ELBO loss    
+        mu, logvar = self.encode(x)
+        z = self.reparameterize(mu, logvar)
+        recon = self.decode(z)
+        recon_loss = F.mse_loss(recon, x, reduction='mean')
+        kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / x.size(0)
+        return recon_loss + beta * kl_loss
+    
+    def train_step(self, x, beta=1.0):
+        self.optimizer.zero_grad()
+        loss = self.compute_loss(x, beta)
+        loss.backward()
+        self.optimizer.step()
+        return loss.item()
+        
+
+
+
