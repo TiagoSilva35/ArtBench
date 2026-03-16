@@ -11,11 +11,11 @@ from src.helpers.debugger import DBG
 def train_vae(
     model,
     train_loader,
+    device,
     val_loader=None,
     epochs=50,
     lr=1e-4,
     beta=1.0,
-    device='cuda' if torch.cuda.is_available() else 'cpu',
     save_dir='vae_results',
     checkpoint_freq=10
 ):  
@@ -48,7 +48,7 @@ def train_vae(
             images = images.to(device)
             batch_size = images.size(0)
             
-            loss = model.train_step(images)
+            loss = model.train_step(images, beta=beta)
             
             train_loss_accum += loss * batch_size
             train_samples += batch_size
@@ -83,8 +83,17 @@ def train_vae(
         final_path = os.path.join(run_dir, f"vae_final.pt")
         torch.save(model.state_dict(), final_path)
         DBG(f"Modelo final salvo em: {final_path}")
-    
+
+        if epoch % checkpoint_freq == 0 or epoch == epochs:
+            sample_batch, _ = next(iter(train_loader))
+            sample_batch = sample_batch.to(device)
+            model.generate_and_save_images(
+                sample_batch,
+                output_dir=os.path.join(run_dir, "samples"),
+                epoch=epoch,
+            )
+
     DBG(f"Treino completo. Resultados salvos em: {run_dir}")
-    return model
+    return model, history
 
     

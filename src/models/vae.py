@@ -90,7 +90,6 @@ class VAE(nn.Module):
         return recon_loss + beta * kl_loss
     
     def generate_and_save_images(self, x: torch.Tensor, output_dir: str, epoch: int, num_samples: int = 8):
-        """Generates reconstructed images from x and random samples, saves both as PNGs."""
         self.eval()
         os.makedirs(output_dir, exist_ok=True)
         device = next(self.parameters()).device

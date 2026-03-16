@@ -16,6 +16,8 @@ from src.helpers.debugger import DBG
 from src.dataset_manager.HFloader import HFDatasetTorch
 from src.helpers.utils import make_subset_indices, show_batch_grid
 from src.helpers.csv_handler import load_ids_from_training_csv, export_split_to_folder
+from src.train import train_vae
+from src.models.vae import VAE
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -54,7 +56,8 @@ if __name__ == '__main__':
     transform = T.Compose([
         T.Resize(IMAGE_SIZE, interpolation=T.InterpolationMode.BILINEAR),
         T.CenterCrop(IMAGE_SIZE),
-        T.ToTensor(),  
+        T.ToTensor(),
+        T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # [0,1] -> [-1,1]
     ])
 
     train_indices = make_subset_indices(len(train_hf), TRAIN_FRACTION, seed=SEED)
@@ -77,3 +80,17 @@ if __name__ == '__main__':
     EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
 
     export_split_to_folder(train_loader, class_names, EXPORT_ROOT / 'train_subset', max_images=500)
+
+    model = VAE(latent_dim=256, num_channels=3, base_channels=32)
+    device = get_device()
+    trained_model, history = train_vae(
+        model,
+        train_loader,
+        device=device,
+        val_loader=None,
+        epochs=50,
+        lr=1e-4,
+        beta=1.0,
+        save_dir='vae_results',
+        checkpoint_freq=10
+    )
