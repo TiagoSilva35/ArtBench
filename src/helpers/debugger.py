@@ -1,6 +1,6 @@
 from typing import Any
 
-activate = False
+activate = True
 
 def DBG(txt: Any) -> None:
     if activate:

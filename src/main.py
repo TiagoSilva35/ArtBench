@@ -17,13 +17,23 @@ from src.dataset_manager.HFloader import HFDatasetTorch
 from src.helpers.utils import make_subset_indices, show_batch_grid
 from src.helpers.csv_handler import load_ids_from_training_csv, export_split_to_folder
 
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
-DBG(f'PROJECT_ROOT = {PROJECT_ROOT}')
-DBG(f'KAGGLE_ROOT  = {KAGGLE_ROOT}')
 
+def get_device():
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    if torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        return torch.device('mps')
+    return torch.device('cpu')
+
+
+set_seed(42)
+device = get_device()
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -32,17 +42,9 @@ if __name__ == '__main__':
 
     hf_ds = load_kaggle_artbench10_splits(KAGGLE_ROOT)
     train_hf = hf_ds["train"]
-
-    DBG(f"Train size: {len(train_hf)}")
-    DBG(f"Columns   : {train_hf.column_names}")
-
     label_feature = train_hf.features["label"]
     class_names = list(label_feature.names)
     num_classes = len(class_names)
-    DBG(f"Num classes: {num_classes}")
-    DBG(f"Class names: {class_names}")
-
-    # Class distribution summary
     train_counts = Counter(train_hf["label"])
 
     DBG("\nTrain class distribution:")
@@ -66,24 +68,9 @@ if __name__ == '__main__':
         pin_memory=torch.cuda.is_available(),
     )
 
-    DBG(f"Train dataset length (after fraction): {len(train_ds)}")
-    DBG(f"Train batches                        : {len(train_loader)}")
-
-
     train_ids_from_csv = load_ids_from_training_csv(TRAINING_CSV_PATH, index_column=INDEX_COLUMN)
     DBG(f'Loaded ids: {len(train_ids_from_csv)}')
     DBG(f'First 10 ids: {train_ids_from_csv[:10]}')
-
-    train_ds_from_csv = HFDatasetTorch(train_hf, transform=transform, indices=train_ids_from_csv)
-    train_loader_from_csv = DataLoader(
-        train_ds_from_csv,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        pin_memory=torch.cuda.is_available(),
-    )
-
-    DBG(f'Subset train dataset length: {len(train_ds_from_csv)}')
-    DBG(f'Subset train batches      : {len(train_loader_from_csv)}')
     show_batch_grid(train_loader, class_names, n_images=36, nrow=6, title='ArtBench-10 Train Samples')
 
     EXPORT_ROOT = Path('exported_data')
