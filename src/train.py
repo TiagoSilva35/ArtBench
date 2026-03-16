@@ -48,8 +48,6 @@ def train_vae(
             images = images.to(device)
             batch_size = images.size(0)
             
-            recon, mu, logvar = model(images)
-            
             loss = model.train_step(images)
             
             train_loss_accum += loss * batch_size
@@ -70,7 +68,7 @@ def train_vae(
                     images = images.to(device)
                     batch_size = images.size(0)
                                         
-                    loss = model.train_step(images)
+                    loss = model.compute_loss(images, beta=beta).item()
                     
                     val_loss_accum += loss * batch_size
                     val_samples += batch_size

@@ -1,3 +1,4 @@
+import os
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -88,6 +89,37 @@ class VAE(nn.Module):
         kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / x.size(0)
         return recon_loss + beta * kl_loss
     
+    def generate_and_save_images(self, x: torch.Tensor, output_dir: str, epoch: int, num_samples: int = 8):
+        """Generates reconstructed images from x and random samples, saves both as PNGs."""
+        self.eval()
+        os.makedirs(output_dir, exist_ok=True)
+        device = next(self.parameters()).device
+
+        with torch.no_grad():
+            # Reconstructions
+            n = min(num_samples, x.size(0))
+            recon, _, _ = self.forward(x[:n])
+            # Random samples
+            samples = self.sample(num_samples, device)
+
+        def save_grid(tensors, path, title):
+            # tensors shape: (N, C, H, W), values in [-1, 1]
+            tensors = (tensors.cpu().clamp(-1, 1) + 1) / 2  # to [0, 1]
+            n = tensors.size(0)
+            fig, axes = plt.subplots(1, n, figsize=(n * 2, 2))
+            if n == 1:
+                axes = [axes]
+            for ax, img in zip(axes, tensors):
+                ax.imshow(img.permute(1, 2, 0).numpy())
+                ax.axis('off')
+            fig.suptitle(title)
+            plt.tight_layout()
+            plt.savefig(path)
+            plt.close(fig)
+
+        save_grid(recon, os.path.join(output_dir, f"reconstructions_epoch{epoch:04d}.png"), f"Reconstructions (epoch {epoch})")
+        save_grid(samples, os.path.join(output_dir, f"samples_epoch{epoch:04d}.png"), f"Samples (epoch {epoch})")
+
     def train_step(self, x, beta=1.0):
         self.optimizer.zero_grad()
         loss = self.compute_loss(x, beta)
