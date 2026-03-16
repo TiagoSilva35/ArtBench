@@ -60,7 +60,21 @@ if __name__ == '__main__':
         T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # [0,1] -> [-1,1]
     ])
 
-    train_indices = make_subset_indices(len(train_hf), TRAIN_FRACTION, seed=SEED)
+    train_ids_from_csv = load_ids_from_training_csv(TRAINING_CSV_PATH, index_column=INDEX_COLUMN)
+    DBG(f'Loaded ids: {len(train_ids_from_csv)}')
+    DBG(f'First 10 ids: {train_ids_from_csv[:10]}')
+
+    if train_ids_from_csv:
+        max_idx = len(train_hf) - 1
+        train_indices = [i for i in train_ids_from_csv if 0 <= i <= max_idx]
+        if len(train_indices) != len(train_ids_from_csv):
+            DBG(
+                f'Filtered {len(train_ids_from_csv) - len(train_indices)} ids outside [0, {max_idx}]'
+            )
+        DBG(f'Using CSV subset size: {len(train_indices)}')
+    else:
+        train_indices = make_subset_indices(len(train_hf), TRAIN_FRACTION, seed=SEED)
+        DBG(f'Using random subset size: {len(train_indices)} (fraction={TRAIN_FRACTION})')
 
     train_ds = HFDatasetTorch(train_hf, transform=transform, indices=train_indices)
 
@@ -71,16 +85,13 @@ if __name__ == '__main__':
         pin_memory=torch.cuda.is_available(),
     )
 
-    train_ids_from_csv = load_ids_from_training_csv(TRAINING_CSV_PATH, index_column=INDEX_COLUMN)
-    DBG(f'Loaded ids: {len(train_ids_from_csv)}')
-    DBG(f'First 10 ids: {train_ids_from_csv[:10]}')
     show_batch_grid(train_loader, class_names, n_images=36, nrow=6, title='ArtBench-10 Train Samples')
 
     EXPORT_ROOT = Path('exported_data')
     EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
 
     export_split_to_folder(train_loader, class_names, EXPORT_ROOT / 'train_subset', max_images=500)
-
+    # exit(0)
     model = VAE(latent_dim=256, num_channels=3, base_channels=32)
     device = get_device()
     trained_model, history = train_vae(
@@ -90,7 +101,7 @@ if __name__ == '__main__':
         val_loader=None,
         epochs=50,
         lr=1e-4,
-        beta=1.0,
+        beta=0.1,
         save_dir='vae_results',
         checkpoint_freq=10
     )

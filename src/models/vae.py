@@ -9,9 +9,6 @@ class VAE(nn.Module):
         super().__init__()
         self.latent_dim = latent_dim
         self.base_channels = base_channels
-        # adam optimizer
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
-
         self.encoder = nn.Sequential(
             nn.Conv2d(num_channels, base_channels, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(base_channels),
@@ -46,6 +43,9 @@ class VAE(nn.Module):
             nn.ConvTranspose2d(base_channels, num_channels, kernel_size=4, stride=2, padding=1),
             nn.Tanh(),
         )
+
+        # Adam optimizer (create after modules so parameters are registered)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
 
     def sample(self, num_samples: int, device: torch.device) -> torch.Tensor:
         z = torch.randn(num_samples, self.latent_dim, device=device)

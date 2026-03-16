@@ -44,7 +44,11 @@ def train_vae(
         train_samples = 0
         
         pbar = tqdm(train_loader, desc=f'Época {epoch}/{epochs} [Treino]')
-        for batch_idx, (images, _) in enumerate(pbar):
+        for batch_idx, batch in enumerate(pbar):
+            if len(batch) == 2:
+                images, _ = batch
+            else:
+                images, _, _ = batch
             images = images.to(device)
             batch_size = images.size(0)
             
@@ -64,7 +68,11 @@ def train_vae(
             val_samples = 0
             
             with torch.no_grad():
-                for images, _ in tqdm(val_loader, desc=f'Época {epoch}/{epochs} [Validação]'):
+                for batch in tqdm(val_loader, desc=f'Época {epoch}/{epochs} [Validação]'):
+                    if len(batch) == 2:
+                        images, _ = batch
+                    else:
+                        images, _, _ = batch
                     images = images.to(device)
                     batch_size = images.size(0)
                                         
@@ -85,7 +93,11 @@ def train_vae(
         DBG(f"Modelo final salvo em: {final_path}")
 
         if epoch % checkpoint_freq == 0 or epoch == epochs:
-            sample_batch, _ = next(iter(train_loader))
+            sample_batch = next(iter(train_loader))
+            if len(sample_batch) == 2:
+                sample_batch, _ = sample_batch
+            else:
+                sample_batch, _, _ = sample_batch
             sample_batch = sample_batch.to(device)
             model.generate_and_save_images(
                 sample_batch,
