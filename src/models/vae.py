@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from matplotlib import pyplot as plt
+from src.helpers.debugger import DBG
 
 class VAE(nn.Module):
     def __init__(self, latent_dim: int = 256, num_channels: int = 3, base_channels: int = 32):
@@ -87,6 +88,7 @@ class VAE(nn.Module):
         recon = self.decode(z)
         recon_loss = F.mse_loss(recon, x, reduction='mean')
         kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / x.size(0)
+        # DBG(f"Recon Loss: {recon_loss.item():.4f}, KL Loss: {kl_loss.item():.4f}")
         return recon_loss + beta * kl_loss
     
     def generate_and_save_images(self, x: torch.Tensor, output_dir: str, epoch: int, num_samples: int = 8):
@@ -97,6 +99,7 @@ class VAE(nn.Module):
         with torch.no_grad():
             # Reconstructions
             n = min(num_samples, x.size(0))
+            original = x[:n].to(device)
             recon, _, _ = self.forward(x[:n])
             # Random samples
             samples = self.sample(num_samples, device)
@@ -113,9 +116,14 @@ class VAE(nn.Module):
             plt.tight_layout()
             plt.savefig(path)
             plt.close(fig)
+        
 
         save_grid(recon, os.path.join(output_dir, f"reconstructions_epoch{epoch:04d}.png"), f"Reconstructions (epoch {epoch})")
         save_grid(samples, os.path.join(output_dir, f"samples_epoch{epoch:04d}.png"), f"Samples (epoch {epoch})")
+
+        comparison = torch.cat([original.cpu(), recon.cpu()], dim=0)
+        save_grid(comparison, os.path.join(output_dir, f"comparison_epoch{epoch:04d}.png"),
+                  f"Original (top row) vs Reconstructed (bottom row) - Epoch {epoch}")
 
     def train_step(self, x, beta=1.0):
         self.optimizer.zero_grad()
