@@ -87,7 +87,7 @@ class VAE(nn.Module):
         z = self.reparameterize(mu, logvar)
         recon = self.decode(z)
         recon_loss = F.mse_loss(recon, x, reduction='mean')
-        kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / x.size(0)
+        kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / x.size(0)  # average over batch
         # DBG(f"Recon Loss: {recon_loss.item():.4f}, KL Loss: {kl_loss.item():.4f}")
         return recon_loss + beta * kl_loss
     
