@@ -3,3 +3,4 @@
 /.DS_Store
 /vae_results
 /exported_data/*
+/dcgan_results/*
