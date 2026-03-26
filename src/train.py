@@ -128,6 +128,16 @@ def train_DCGAN(
     # Ensure all DCGAN modules are on the same device as input tensors.
     model = model.to(device)
 
+    g_params = sum(p.numel() for p in model.generator.parameters())
+    d_params = sum(p.numel() for p in model.discriminator.parameters())
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(
+        "DCGAN params -> "
+        f"G: {g_params:,} | D: {d_params:,} | "
+        f"Total: {total_params:,} | Trainable: {trainable_params:,}"
+    )
+
     # 2. Fixed latent vectors for consistent image samples over epochs
     fixed_z = torch.randn(16, model.generator.latent_dim, device=device)
 
