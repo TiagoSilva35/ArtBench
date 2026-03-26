@@ -1,0 +1,175 @@
+Dataset source: kaggle root='artbench-10-python'
+DEBUG: 
+Train class distribution:
+DEBUG:    0 |   impressionism |   5000
+DEBUG:    1 |         realism |   5000
+DEBUG:    2 |     romanticism |   5000
+DEBUG:    3 |   expressionism |   5000
+DEBUG:    4 |         baroque |   5000
+DEBUG:    5 | post_impressionism |   5000
+DEBUG:    6 |     art_nouveau |   5000
+DEBUG:    7 |      surrealism |   5000
+DEBUG:    8 |         ukiyo_e |   5000
+DEBUG:    9 |     renaissance |   5000
+DEBUG: Loaded ids: 10000
+DEBUG: First 10 ids: [33553, 9427, 199, 12447, 39489, 42724, 10822, 49498, 4144, 36958]
+DEBUG: Using CSV subset size: 10000
+Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers). Got range [-1.0..1.0].
+DEBUG: Labels: ['renaissance', 'romanticism', 'expressionism', 'romanticism', 'post_impressionism', 'realism', 'renaissance', 'post_impressionism', 'post_impressionism', 'surrealism', 'post_impressionism', 'expressionism', 'art_nouveau', 'baroque', 'ukiyo_e', 'romanticism', 'ukiyo_e', 'surrealism', 'romanticism', 'post_impressionism', 'ukiyo_e', 'surrealism', 'renaissance', 'art_nouveau', 'realism', 'baroque', 'expressionism', 'surrealism', 'expressionism', 'realism', 'realism', 'art_nouveau', 'impressionism', 'expressionism', 'art_nouveau', 'post_impressionism']
+DEBUG: Exported 500 images to: exported_data/train_subset/images
+DEBUG: Metadata CSV: exported_data/train_subset/metadata.csv
+DEBUG: Iniciando treino do VAE por 50 épocas
+DEBUG: Dispositivo: cpu
+DEBUG: Beta: 0.1
+DEBUG: Resultados em: vae_results
+Época 1/50 [Treino]: 100%|████████| 157/157 [00:11<00:00, 14.15it/s, loss=0.284]
+DEBUG: Época 1 - Loss de Treino: 0.5587
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 2/50 [Treino]: 100%|████████| 157/157 [00:10<00:00, 14.69it/s, loss=0.259]
+DEBUG: Época 2 - Loss de Treino: 0.2595
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 3/50 [Treino]: 100%|████████| 157/157 [00:10<00:00, 14.83it/s, loss=0.287]
+DEBUG: Época 3 - Loss de Treino: 0.2514
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 4/50 [Treino]: 100%|████████| 157/157 [00:10<00:00, 14.64it/s, loss=0.258]
+DEBUG: Época 4 - Loss de Treino: 0.2483
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 5/50 [Treino]: 100%|████████| 157/157 [00:10<00:00, 14.58it/s, loss=0.288]
+DEBUG: Época 5 - Loss de Treino: 0.2466
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 6/50 [Treino]: 100%|████████| 157/157 [00:10<00:00, 14.84it/s, loss=0.246]
+DEBUG: Época 6 - Loss de Treino: 0.2455
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 7/50 [Treino]: 100%|████████| 157/157 [00:10<00:00, 14.75it/s, loss=0.266]
+DEBUG: Época 7 - Loss de Treino: 0.2448
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 8/50 [Treino]: 100%|████████| 157/157 [00:10<00:00, 14.82it/s, loss=0.222]
+DEBUG: Época 8 - Loss de Treino: 0.2445
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 9/50 [Treino]: 100%|████████| 157/157 [00:10<00:00, 14.87it/s, loss=0.245]
+DEBUG: Época 9 - Loss de Treino: 0.2433
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 10/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.91it/s, loss=0.237]
+DEBUG: Época 10 - Loss de Treino: 0.2405
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 11/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.70it/s, loss=0.301]
+DEBUG: Época 11 - Loss de Treino: 0.2389
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 12/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.78it/s, loss=0.205]
+DEBUG: Época 12 - Loss de Treino: 0.2382
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 13/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.79it/s, loss=0.224]
+DEBUG: Época 13 - Loss de Treino: 0.2376
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 14/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.77it/s, loss=0.215]
+DEBUG: Época 14 - Loss de Treino: 0.2375
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 15/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.83it/s, loss=0.232]
+DEBUG: Época 15 - Loss de Treino: 0.2350
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 16/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.87it/s, loss=0.256]
+DEBUG: Época 16 - Loss de Treino: 0.2350
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 17/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.77it/s, loss=0.257]
+DEBUG: Época 17 - Loss de Treino: 0.2361
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 18/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.86it/s, loss=0.247]
+DEBUG: Época 18 - Loss de Treino: 0.2373
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 19/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.95it/s, loss=0.212]
+DEBUG: Época 19 - Loss de Treino: 0.2350
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 20/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.93it/s, loss=0.226]
+DEBUG: Época 20 - Loss de Treino: 0.2343
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 21/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.78it/s, loss=0.203]
+DEBUG: Época 21 - Loss de Treino: 0.2343
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 22/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.70it/s, loss=0.179]
+DEBUG: Época 22 - Loss de Treino: 0.2343
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 23/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.82it/s, loss=0.212]
+DEBUG: Época 23 - Loss de Treino: 0.2351
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 24/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.80it/s, loss=0.204]
+DEBUG: Época 24 - Loss de Treino: 0.2338
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 25/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.48it/s, loss=0.236]
+DEBUG: Época 25 - Loss de Treino: 0.2345
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 26/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.83it/s, loss=0.284]
+DEBUG: Época 26 - Loss de Treino: 0.2341
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 27/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.89it/s, loss=0.236]
+DEBUG: Época 27 - Loss de Treino: 0.2340
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 28/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.75it/s, loss=0.226]
+DEBUG: Época 28 - Loss de Treino: 0.2339
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 29/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.64it/s, loss=0.213]
+DEBUG: Época 29 - Loss de Treino: 0.2337
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 30/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.79it/s, loss=0.216]
+DEBUG: Época 30 - Loss de Treino: 0.2317
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 31/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.72it/s, loss=0.225]
+DEBUG: Época 31 - Loss de Treino: 0.2349
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 32/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.79it/s, loss=0.285]
+DEBUG: Época 32 - Loss de Treino: 0.2347
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 33/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.66it/s, loss=0.263]
+DEBUG: Época 33 - Loss de Treino: 0.2342
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 34/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.77it/s, loss=0.222]
+DEBUG: Época 34 - Loss de Treino: 0.2347
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 35/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.71it/s, loss=0.254]
+DEBUG: Época 35 - Loss de Treino: 0.2332
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 36/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.63it/s, loss=0.235]
+DEBUG: Época 36 - Loss de Treino: 0.2323
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 37/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.75it/s, loss=0.283]
+DEBUG: Época 37 - Loss de Treino: 0.2364
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 38/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.79it/s, loss=0.283]
+DEBUG: Época 38 - Loss de Treino: 0.2324
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 39/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.68it/s, loss=0.226]
+DEBUG: Época 39 - Loss de Treino: 0.2331
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 40/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.73it/s, loss=0.202]
+DEBUG: Época 40 - Loss de Treino: 0.2345
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 41/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.57it/s, loss=0.207]
+DEBUG: Época 41 - Loss de Treino: 0.2325
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 42/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.66it/s, loss=0.271]
+DEBUG: Época 42 - Loss de Treino: 0.2337
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 43/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.64it/s, loss=0.186]
+DEBUG: Época 43 - Loss de Treino: 0.2346
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 44/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.47it/s, loss=0.234]
+DEBUG: Época 44 - Loss de Treino: 0.2336
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 45/50 [Treino]: 100%|███████| 157/157 [00:11<00:00, 14.04it/s, loss=0.218]
+DEBUG: Época 45 - Loss de Treino: 0.2324
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 46/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.66it/s, loss=0.282]
+DEBUG: Época 46 - Loss de Treino: 0.2326
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 47/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.71it/s, loss=0.264]
+DEBUG: Época 47 - Loss de Treino: 0.2330
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 48/50 [Treino]: 100%|████████| 157/157 [00:10<00:00, 14.70it/s, loss=0.22]
+DEBUG: Época 48 - Loss de Treino: 0.2344
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 49/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.73it/s, loss=0.272]
+DEBUG: Época 49 - Loss de Treino: 0.2348
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+Época 50/50 [Treino]: 100%|███████| 157/157 [00:10<00:00, 14.34it/s, loss=0.224]
+DEBUG: Época 50 - Loss de Treino: 0.2336
+DEBUG: Modelo final salvo em: vae_results/vae_final.pt
+DEBUG: Treino completo. Resultados salvos em: vae_results
