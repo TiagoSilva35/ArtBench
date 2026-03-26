@@ -16,8 +16,9 @@ from src.helpers.debugger import DBG
 from src.dataset_manager.HFloader import HFDatasetTorch
 from src.helpers.utils import make_subset_indices, show_batch_grid
 from src.helpers.csv_handler import load_ids_from_training_csv, export_split_to_folder
-from src.train import train_vae
+from src.train import train_vae, train_DCGAN
 from src.models.vae import VAE
+from src.models.DCGAN import DCGAN
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -91,17 +92,30 @@ if __name__ == '__main__':
     EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
 
     export_split_to_folder(train_loader, class_names, EXPORT_ROOT / 'train_subset', max_images=500)
-    # exit(0)
-    model = VAE(latent_dim=256, num_channels=3, base_channels=32)
+
+    vae_model = VAE(latent_dim=256, num_channels=3, base_channels=32)
+    dcgan_model = DCGAN(latent_dim=256, img_channels=3, feature_maps=32)
+
     device = get_device()
-    trained_model, history = train_vae(
-        model,
+    # trained_model, history = train_vae(
+    #     vae_model,
+    #     train_loader,
+    #     device=device,
+    #     val_loader=None,
+    #     epochs=50,
+    #     lr=1e-4,
+    #     beta=0.1,
+    #     save_dir='vae_results',
+    #     checkpoint_freq=10
+    # )
+
+    trained_DCGAN, history_DCGAN = train_DCGAN(
+        dcgan_model,
         train_loader,
         device=device,
         val_loader=None,
         epochs=50,
-        lr=1e-4,
-        beta=0.1,
-        save_dir='vae_results',
+        save_dir='dcgan_results',
         checkpoint_freq=10
     )
+

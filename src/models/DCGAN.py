@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
@@ -48,52 +49,44 @@ class DCGAN(nn.Module):
     def __init__(self, latent_dim=100, img_channels=3, feature_maps=64):
         super().__init__()
         self.generator = DCGenerator(latent_dim, img_channels, feature_maps)
+        self.latent_dim = latent_dim
         self.discriminator = DCDescriminator(img_channels, feature_maps)
         self.optimizer_G = torch.optim.Adam(self.generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
         self.optimizer_D = torch.optim.Adam(self.discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
         self.criterion = nn.BCELoss()
-    
-    def train(self, loader, device, epochs=20):
-        assert self.generator.training and self.discriminator.training, "Make sure to call model.train() before training"
-        history = {'d_loss': [], 'g_loss': []}
-        self.discriminator.train()
-        self.generator.train()
-        for epoch in range(epochs):
-            d_loss_epoch = 0.0
-            g_loss_epoch = 0.0
-            n_batches = 0
-            for real_imgs, _ in tqdm(loader, desc=f"Epoch {epoch+1}/{epochs}"):
-                batch_size = real_imgs.size(0)
-                real_imgs = real_imgs.to(device)
-                
-                valid = torch.ones(batch_size, device=device) # the real targets
-                fake_targets = torch.zeros(batch_size, device=device) 
-                
-                assert self.discriminator is not None and self.generator is not None, "Make sure to initialize the generator and discriminator before training"
+        
+    def generate_and_save_images(self, x: torch.Tensor, output_dir: str, epoch: int, num_samples: int = 8):
+        self.eval()
+        os.makedirs(output_dir, exist_ok=True)
+        device = next(self.generator.parameters()).device
 
-                # Train Discriminator
-                self.optimizer_D.zero_grad()
-                d_real_loss = self.criterion(self.discriminator(real_imgs), valid)
-                z = torch.randn(batch_size, self.generator.latent_dim, device=device)
-                gen_imgs = self.generator(z) # generate fake images
-                d_fake_loss = self.criterion(self.discriminator(gen_imgs.detach()), fake_targets)
-                d_loss = d_real_loss + d_fake_loss
-                d_loss.backward()
-                self.optimizer_D.step()
+        with torch.no_grad():
+            n = min(num_samples, x.size(0))
+            real = x[:n].to(device)
+            z = torch.randn(num_samples, self.latent_dim, device=device)
+            samples = self.generator(z)
 
-                # Train Generator
-                self.optimizer_G.zero_grad()
-                g_loss = self.criterion(self.discriminator(gen_imgs), valid)
-                g_loss.backward()
-                self.optimizer_G.step()
+        def save_grid(tensors, path, title):
+            # tensors shape: (N, C, H, W), values in [-1, 1]
+            tensors = (tensors.cpu().clamp(-1, 1) + 1) / 2  # to [0, 1]
+            n_cols = tensors.size(0)
+            fig, axes = plt.subplots(1, n_cols, figsize=(n_cols * 2, 2), squeeze=False)
+            for ax, img in zip(axes[0], tensors):
+                ax.imshow(img.permute(1, 2, 0).numpy())
+                ax.axis('off')
+            fig.suptitle(title)
+            plt.tight_layout()
+            plt.savefig(path)
+            plt.close(fig)
 
-                d_loss_epoch += d_loss.item()
-                g_loss_epoch += g_loss.item()
-                n_batches += 1
-            history['d_loss'].append(d_loss_epoch / n_batches)
-            history['g_loss'].append(g_loss_epoch / n_batches)
-            print(f"Epoch {epoch+1}/{epochs} - D Loss: {history['d_loss'][-1]:.4f}, G Loss: {history['g_loss'][-1]:.4f}")
-        return history
+        save_grid(samples, os.path.join(output_dir, f"samples_epoch{epoch:04d}.png"), f"Generated Samples (epoch {epoch})")
+
+        comparison = torch.cat([real.cpu(), samples[:n].cpu()], dim=0)
+        save_grid(
+            comparison,
+            os.path.join(output_dir, f"comparison_epoch{epoch:04d}.png"),
+            f"Real (first row) vs Generated (second row) - Epoch {epoch}"
+        )
         
     
 def init_DCGAN_weights(model):
