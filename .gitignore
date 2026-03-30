@@ -8,4 +8,4 @@
 /exported_data/*
 /dcgan_results/*
 /PixelUNet_results/*
-/LatentDenoiseNetwork/*
+/LatentDenoiseNetwork_results/*
