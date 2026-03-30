@@ -1,9 +1,12 @@
+import os
 import torch
 import torch.nn as nn
 import math
 from src.helpers.debugger import DBG
-from src.helpers.diffusion_helpers import SinusoidalPosEmb, ResnetBlock, GaussianDiffusion
+from src.helpers.diffusion_helpers import SinusoidalPosEmb, ResnetBlock
 from torch.nn import functional as F
+from src.config import IMAGE_SIZE
+from matplotlib import pyplot as plt
 
 class LatentDenoiseNetwork(nn.Module):
     """
@@ -45,7 +48,8 @@ class LatentDenoiseNetwork(nn.Module):
     # Scheduler é o Diffusion model utilizado (GaussianDiffusion)
     # Shape: (num_amostras, dimensões do espaço latente) -> Preciso ainda de descobrir quais são
     # Nota: num_amostrar convém ser quadrado perfeito (16, 25, ...) para ficar bem numa grid
-    def sample(self, schedule, shape, vae=None):
+    @torch.no_grad()
+    def sample(self, schedule, shape: tuple[int, int, int, int], device: torch.device, vae=None):
         self.eval()
         x = torch.randn(shape, device=device)
 
@@ -74,14 +78,18 @@ class LatentDenoiseNetwork(nn.Module):
 
         return x
 
-    def generate_and_save_images(self, x: torch.Tensor, output_dir: str, epoch: int, shape: tuple[int, int, int, int], schedule, vae=None):
+    def generate_and_save_images(self, schedule, output_dir: str, epoch: int, num_samples=8, vae=None):
+        shape = (num_samples, 3, IMAGE_SIZE, IMAGE_SIZE)
+        if vae is not None:
+            shape = (num_samples, vae.latent_dim, 2, 2)
+
         self.eval()
         os.makedirs(output_dir, exist_ok=True)
         device = next(self.parameters()).device
 
         with torch.no_grad():
             # Random samples
-            samples = self.sample(schedule, shape, device, vae)
+            samples = self.sample(schedule, shape=shape, device=device, vae=vae)
 
         def save_grid(tensors, path, title):
             # tensors shape: (N, C, H, W), values in [-1, 1]
@@ -98,7 +106,7 @@ class LatentDenoiseNetwork(nn.Module):
 
         save_grid(samples, os.path.join(output_dir, f"samples_epoch{epoch:04d}.png"), f"Samples (epoch {epoch})")
 
-    def compute_loss(self, x, schedule):
+    def compute_loss(self, x, schedule, device: torch.device):
         # 1) Determine batch size and sample random diffusion steps.
         # 2) Use q_sample to obtain x_t and the target noise.
         # 3) Predict the noise with model(x_t, t).
@@ -110,10 +118,9 @@ class LatentDenoiseNetwork(nn.Module):
         loss = F.mse_loss(eps_pred, eps)
         return loss
 
-    def train_step(self, x, schedule):
+    def train_step(self, x, schedule, device: torch.device):
         # 5) Zero gradients, backpropagate, and step the optimizer.
-        # 6) Update the running loss and batch counter.
-        loss = self.compute_loss(x, schedule)
+        loss = self.compute_loss(x, schedule, device)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -208,7 +215,7 @@ class PixelUNet(nn.Module):
     # Scheduler é o Diffusion model utilizado (GaussianDiffusion)
     # Shape: (num_amostras, dimensões do espaço latente) -> Preciso ainda de descobrir quais são
     # Nota: num_amostrar convém ser quadrado perfeito (16, 25, ...) para ficar bem numa grid
-    def sample(schedule, shape: tuple[int, int, int, int], device: torch.device, vae=None):
+    def sample(self, schedule, shape: tuple[int, int, int, int], device: torch.device, vae=None):
         if vae is not None:
             print("Warning: Latent Space not implemented for this Denoiser Network (PixelUNet)",
                 "If a VAE was used to generate Latent Space for trainig this model, the sampling might given weird results")
@@ -237,14 +244,18 @@ class PixelUNet(nn.Module):
 
         return x
 
-    def generate_and_save_images(self, x: torch.Tensor, output_dir: str, epoch: int, shape: tuple[int, int, int, int], schedule, vae=None):
+    def generate_and_save_images(self, schedule, output_dir: str, epoch: int, num_samples=8, vae=None):
+        shape = (num_samples, 3, IMAGE_SIZE, IMAGE_SIZE)
+        if vae is not None:
+            shape = (num_samples, vae.latent_dim, 2, 2)
+
         self.eval()
         os.makedirs(output_dir, exist_ok=True)
         device = next(self.parameters()).device
 
         with torch.no_grad():
             # Random samples
-            samples = self.sample(schedule, shape, device, vae)
+            samples = self.sample(schedule, shape=shape, device=device, vae=vae)
 
         def save_grid(tensors, path, title):
             # tensors shape: (N, C, H, W), values in [-1, 1]
@@ -261,7 +272,7 @@ class PixelUNet(nn.Module):
 
         save_grid(samples, os.path.join(output_dir, f"samples_epoch{epoch:04d}.png"), f"Samples (epoch {epoch})")
 
-    def compute_loss(self, x, schedule):
+    def compute_loss(self, x, schedule, device: torch.device):
         # 1) Determine batch size and sample random diffusion steps.
         # 2) Use q_sample to obtain x_t and the target noise.
         # 3) Predict the noise with model(x_t, t).
@@ -274,10 +285,9 @@ class PixelUNet(nn.Module):
         return loss
 
 
-    def train_step(self, x, schedule):
+    def train_step(self, x, schedule, device: torch.device):
         # 5) Zero gradients, backpropagate, and step the optimizer.
-        # 6) Update the running loss and batch counter.
-        loss = self.compute_loss(x, schedule)
+        loss = self.compute_loss(x, schedule, device)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()

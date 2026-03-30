@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import os
 import random
 import numpy as np
 import torch
@@ -16,9 +17,11 @@ from src.helpers.debugger import DBG
 from src.dataset_manager.HFloader import HFDatasetTorch
 from src.helpers.utils import make_subset_indices, show_batch_grid
 from src.helpers.csv_handler import load_ids_from_training_csv, export_split_to_folder
-from src.train import train_vae, train_DCGAN
+from src.helpers.diffusion_helpers import GaussianDiffusion
+from src.train import train_vae, train_DCGAN, train_diffusion
 from src.models.vae import VAE
 from src.models.DCGAN import DCGAN
+from src.models.DenoiserNetworks import PixelUNet, LatentDenoiseNetwork
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -86,29 +89,39 @@ if __name__ == '__main__':
         pin_memory=torch.cuda.is_available(),
     )
 
-    show_batch_grid(train_loader, class_names, n_images=36, nrow=6, title='ArtBench-10 Train Samples')
+    #show_batch_grid(train_loader, class_names, n_images=36, nrow=6, title='ArtBench-10 Train Samples')
 
     EXPORT_ROOT = Path('exported_data')
     EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
 
     export_split_to_folder(train_loader, class_names, EXPORT_ROOT / 'train_subset', max_images=500)
 
-    vae_model = VAE(latent_dim=256, num_channels=3, base_channels=32)
-    dcgan_model = DCGAN(latent_dim=256, img_channels=3, feature_maps=32)
 
+    vae_model = VAE(latent_dim=16, num_channels=3, base_channels=32)
+    #dcgan_model = DCGAN(latent_dim=256, img_channels=3, feature_maps=32)
+
+    gaussianDiffusion_model = GaussianDiffusion(num_timesteps=1000, beta_start=0.0001, beta_end=0.02, device=device)
+    #pixelUNet_model = PixelUNet(in_channels=3, model_channels=64)
+    latentDenoiseNetwork_model = LatentDenoiseNetwork(latent_channels=vae_model.latent_dim, model_channels=64, num_res_blocks=3)
+
+    keep_last_vae = True
     device = get_device()
-    # trained_model, history = train_vae(
-    #     vae_model,
-    #     train_loader,
-    #     device=device,
-    #     val_loader=None,
-    #     epochs=50,
-    #     lr=1e-4,
-    #     beta=0.1,
-    #     save_dir='vae_results',
-    #     checkpoint_freq=10
-    # )
-
+    if os.path.exists('vae_results/vae_final.pt') and keep_last_model:
+        model_parameters = torch.load('vae_results/vae_final.pt', map_location=device, weights_only=True)
+        vae_model.load_state_dict(model_parameters)
+    else:
+        trained_vae, history = train_vae(
+            vae_model,
+            train_loader,
+            device=device,
+            val_loader=None,
+            epochs=50,
+            lr=1e-3,
+            beta=1e-5,
+            save_dir='vae_results',
+            checkpoint_freq=10
+        )
+    '''
     trained_DCGAN, history_DCGAN = train_DCGAN(
         dcgan_model,
         train_loader,
@@ -118,4 +131,31 @@ if __name__ == '__main__':
         save_dir='dcgan_results',
         checkpoint_freq=10
     )
-
+    trained_PixelUNet, history_PixelUNet = train_diffusion(
+        pixelUNet_model,
+        train_loader,
+        gaussianDiffusion_model,
+        device,
+        val_loader=None,
+        epochs=50,
+        lr=2e-4,
+        vae=None,
+        save_dir="PixelUNet_results",
+        checkpoint_freq=10
+    )
+    '''
+    for p in vae_model.parameters():
+        p.requires_grad = False
+    vae_model.eval()
+    trained_LatentDenoiseNetwork, history_LatentDenoiseNetwork = train_diffusion(
+        latentDenoiseNetwork_model,
+        train_loader,
+        gaussianDiffusion_model,
+        device,
+        val_loader=None,
+        epochs=50,
+        lr=1e-4,
+        vae=vae_model,
+        save_dir="LatentDenoiseNetwork_results",
+        checkpoint_freq=10
+    )
