@@ -98,15 +98,15 @@ if __name__ == '__main__':
 
 
     vae_model = VAE(latent_dim=16, num_channels=3, base_channels=32)
-    #dcgan_model = DCGAN(latent_dim=256, img_channels=3, feature_maps=32)
+    dcgan_model = DCGAN(latent_dim=256, img_channels=3, feature_maps=32)
 
     gaussianDiffusion_model = GaussianDiffusion(num_timesteps=1000, beta_start=0.0001, beta_end=0.02, device=device)
-    #pixelUNet_model = PixelUNet(in_channels=3, model_channels=64)
+    pixelUNet_model = PixelUNet(in_channels=3, model_channels=64)
     latentDenoiseNetwork_model = LatentDenoiseNetwork(latent_channels=vae_model.latent_dim, model_channels=64, num_res_blocks=3)
 
-    keep_last_vae = True
+    keep_last_vae = False
     device = get_device()
-    if os.path.exists('vae_results/vae_final.pt') and keep_last_model:
+    if os.path.exists('vae_results/vae_final.pt') and keep_last_vae:
         model_parameters = torch.load('vae_results/vae_final.pt', map_location=device, weights_only=True)
         vae_model.load_state_dict(model_parameters)
     else:
@@ -121,7 +121,6 @@ if __name__ == '__main__':
             save_dir='vae_results',
             checkpoint_freq=10
         )
-    '''
     trained_DCGAN, history_DCGAN = train_DCGAN(
         dcgan_model,
         train_loader,
@@ -143,7 +142,6 @@ if __name__ == '__main__':
         save_dir="PixelUNet_results",
         checkpoint_freq=10
     )
-    '''
     for p in vae_model.parameters():
         p.requires_grad = False
     vae_model.eval()

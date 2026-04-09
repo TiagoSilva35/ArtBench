@@ -37,7 +37,7 @@ def export_split_to_folder(
     loader: DataLoader,
     class_names: list[str],
     out_dir: Path,
-    max_images: int | None = 500,
+    max_images: int = 500,
 ):
     out_dir = Path(out_dir)
     img_dir = out_dir / 'images'

@@ -59,7 +59,7 @@ class GaussianDiffusion:
     """
     DDPM (Denoising Diffusion Probabilistic Models) Scheduler.
     """
-    def __init__(self, num_timesteps=1000, beta_start=0.0001, beta_end=0.02, device='cpu'):
+    def __init__(self, num_timesteps=1000, beta_start=0.0001, beta_end=0.02, device=torch.device('cpu')):
         self.num_timesteps = num_timesteps
         self.device = device
 

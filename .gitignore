@@ -9,3 +9,4 @@
 /dcgan_results/*
 /PixelUNet_results/*
 /LatentDenoiseNetwork_results/*
+*.pyc
