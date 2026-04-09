@@ -113,8 +113,23 @@ class VAE(nn.Module):
             n = tensors.size(0)
             fig, axes = plt.subplots(1, n, figsize=(n * 2, 2), squeeze=False)
             for ax, img in zip(axes[0], tensors):
-                ax.imshow(img.permute(1, 2, 0).numpy())
+                ax.imshow(img.permute(1, 2, 0).numpy(), interpolation='nearest')
                 ax.axis('off')
+            fig.suptitle(title)
+            plt.tight_layout()
+            plt.savefig(path)
+            plt.close(fig)
+
+        def save_comparison_grid(top_row, bottom_row, path, title):
+            top_row = (top_row.cpu().clamp(-1, 1) + 1) / 2
+            bottom_row = (bottom_row.cpu().clamp(-1, 1) + 1) / 2
+            n = min(top_row.size(0), bottom_row.size(0))
+            fig, axes = plt.subplots(2, n, figsize=(n * 2, 4), squeeze=False)
+            for i in range(n):
+                axes[0][i].imshow(top_row[i].permute(1, 2, 0).numpy(), interpolation='nearest')
+                axes[0][i].axis('off')
+                axes[1][i].imshow(bottom_row[i].permute(1, 2, 0).numpy(), interpolation='nearest')
+                axes[1][i].axis('off')
             fig.suptitle(title)
             plt.tight_layout()
             plt.savefig(path)
@@ -124,9 +139,12 @@ class VAE(nn.Module):
         save_grid(recon, os.path.join(output_dir, f"reconstructions_epoch{epoch:04d}.png"), f"Reconstructions (epoch {epoch})")
         save_grid(samples, os.path.join(output_dir, f"samples_epoch{epoch:04d}.png"), f"Samples (epoch {epoch})")
 
-        comparison = torch.cat([original.cpu(), recon.cpu()], dim=0)
-        save_grid(comparison, os.path.join(output_dir, f"comparison_epoch{epoch:04d}.png"),
-                  f"Original (top row) vs Reconstructed (bottom row) - Epoch {epoch}")
+        save_comparison_grid(
+            original,
+            recon,
+            os.path.join(output_dir, f"comparison_epoch{epoch:04d}.png"),
+            f"Original (top row) vs Reconstructed (bottom row) - Epoch {epoch}"
+        )
 
     def train_step(self, x, beta=1.0):
         self.optimizer.zero_grad()

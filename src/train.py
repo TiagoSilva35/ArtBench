@@ -1,9 +1,5 @@
-import datetime
-from unittest import loader
-
 import torch
 import torch.optim as optim
-from torch.utils.data import DataLoader
 import os
 from tqdm import tqdm
 from pathlib import Path
@@ -50,8 +46,9 @@ def train_vae(
                 images, _ = batch
             else:
                 images, _, _ = batch
-                images = images.to(device)
-                batch_size = images.size(0)
+
+            images = images.to(device)
+            batch_size = images.size(0)
 
             loss = model.train_step(images, beta=beta)
 
@@ -75,8 +72,9 @@ def train_vae(
                         images, _ = batch
                     else:
                         images, _, _ = batch
-                        images = images.to(device)
-                        batch_size = images.size(0)
+
+                    images = images.to(device)
+                    batch_size = images.size(0)
 
                     loss = model.compute_loss(images, beta=beta).item()
 
@@ -100,12 +98,13 @@ def train_vae(
                 sample_batch, _ = sample_batch
             else:
                 sample_batch, _, _ = sample_batch
-                sample_batch = sample_batch.to(device)
-                model.generate_and_save_images(
-                    sample_batch,
-                    output_dir=os.path.join(run_dir, "samples"),
-                    epoch=epoch,
-                )
+
+            sample_batch = sample_batch.to(device)
+            model.generate_and_save_images(
+                sample_batch,
+                output_dir=os.path.join(run_dir, "samples"),
+                epoch=epoch,
+            )
 
     # store the final model
     final_path = os.path.join(run_dir, f"vae_final.pt")
@@ -166,8 +165,9 @@ def train_DCGAN(
                 real_imgs, _ = batch
             else:
                 real_imgs, _, _ = batch
-                batch_size = real_imgs.size(0)
-                real_imgs = real_imgs.to(device)
+
+            real_imgs = real_imgs.to(device)
+            batch_size = real_imgs.size(0)
 
             # LABEL SMOOTHING: Use 0.9 for real images instead of 1.0 to prevent D from becoming too confident
             valid = torch.full((batch_size,), 0.9, device=device)
@@ -261,6 +261,16 @@ def train_DCGAN(
         # Switch back to train mode for the next epoch
         model.generator.train()
 
+    final_path = run_dir / "dcgan_final.pt"
+    torch.save({
+        'epoch': epochs,
+        'generator_state_dict': model.generator.state_dict(),
+        'discriminator_state_dict': model.discriminator.state_dict(),
+        'optimizer_G_state_dict': model.optimizer_G.state_dict(),
+        'optimizer_D_state_dict': model.optimizer_D.state_dict(),
+    }, final_path)
+    print(f"Final checkpoint saved at: {final_path}")
+
     print(f"\nTraining complete. Results saved in: {run_dir}")
     return model, history
 
@@ -283,7 +293,7 @@ def train_diffusion(model, train_loader, schedule, device, val_loader=None, epoc
         "val_loss":[]
     }
 
-    DBG(f"Iniciando treino do VAE por {epochs} épocas")
+    DBG(f"Iniciando treino de difusão por {epochs} épocas")
     DBG(f"Dispositivo: {device}")
     DBG(f"Resultados em: {run_dir}")
 
@@ -325,7 +335,7 @@ def train_diffusion(model, train_loader, schedule, device, val_loader=None, epoc
                         images, _ = batch
                     else:
                         images, _, _ = batch
-                        images = images.to(device)
+                    images = images.to(device)
 
                     # Criar espaço latente, caso uma vae for dada
                     if vae is not None:

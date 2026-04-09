@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-import os
 import random
 import numpy as np
 import torch
@@ -36,6 +35,91 @@ def get_device():
     if torch.backends.mps.is_available() and torch.backends.mps.is_built():
         return torch.device('mps')
     return torch.device('cpu')
+
+def load_state_dict(model, checkpoint_path: Path, device: torch.device, key: str | None = None):
+    if not checkpoint_path.exists():
+        return False
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    state_dict = checkpoint[key] if key is not None else checkpoint
+    model.load_state_dict(state_dict)
+    DBG(f"Loaded checkpoint: {checkpoint_path}")
+    return True
+
+
+def find_latest_checkpoint(checkpoint_dir: Path, pattern: str):
+    if not checkpoint_dir.exists():
+        return None
+    checkpoints = sorted(checkpoint_dir.glob(pattern))
+    return checkpoints[-1] if checkpoints else None
+
+
+def load_vae(model, train_loader, device):
+    final_path = Path('vae_results') / 'vae_final.pt'
+    if load_state_dict(model, final_path, device):
+        return model, None
+    latest_path = find_latest_checkpoint(Path('vae_results') / 'checkpoints', 'vae_epoch_*.pt')
+    if latest_path is not None and load_state_dict(model, latest_path, device):
+        return model, None
+    return train_vae(
+        model,
+        train_loader,
+        device=device,
+        val_loader=None,
+        epochs=50,
+        lr=1e-3,
+        beta=1e-5,
+        save_dir='vae_results',
+        checkpoint_freq=10
+    )
+
+
+def load_dcgan(model, train_loader, device):
+    final_path = Path('dcgan_results') / 'dcgan_final.pt'
+    checkpoint_path = final_path
+    if not checkpoint_path.exists():
+        checkpoint_path = find_latest_checkpoint(Path('dcgan_results') / 'checkpoints', 'dcgan_epoch_*.pt')
+
+    if checkpoint_path is not None and checkpoint_path.exists():
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+        model.generator.load_state_dict(checkpoint['generator_state_dict'])
+        model.discriminator.load_state_dict(checkpoint['discriminator_state_dict'])
+        if 'optimizer_G_state_dict' in checkpoint:
+            model.optimizer_G.load_state_dict(checkpoint['optimizer_G_state_dict'])
+        if 'optimizer_D_state_dict' in checkpoint:
+            model.optimizer_D.load_state_dict(checkpoint['optimizer_D_state_dict'])
+        DBG(f"Loaded full DCGAN checkpoint: {checkpoint_path}")
+        return model, None
+
+    return train_DCGAN(
+        model,
+        train_loader,
+        device=device,
+        val_loader=None,
+        epochs=50,
+        save_dir='dcgan_results',
+        checkpoint_freq=10
+    )
+
+
+def load_diffusion(model, train_loader, gaussian_diffusion, device, vae, save_dir, lr):
+    final_path = Path(save_dir) / f"{model.name}_final.pt"
+    if load_state_dict(model, final_path, device):
+        return model, None
+    latest_path = find_latest_checkpoint(Path(save_dir) / 'checkpoints', f'{model.name}_epoch_*.pt')
+    if latest_path is not None and load_state_dict(model, latest_path, device):
+        return model, None
+    return train_diffusion(
+        model,
+        train_loader,
+        gaussian_diffusion,
+        device,
+        val_loader=None,
+        epochs=50,
+        lr=lr,
+        vae=vae,
+        save_dir=save_dir,
+        checkpoint_freq=10
+    )
 
 
 set_seed(42)
@@ -101,59 +185,25 @@ if __name__ == '__main__':
     dcgan_model = DCGAN(latent_dim=256, img_channels=3, feature_maps=32)
 
     gaussianDiffusion_model = GaussianDiffusion(num_timesteps=1000, beta_start=0.0001, beta_end=0.02, device=device)
+    
     pixelUNet_model = PixelUNet(in_channels=3, model_channels=64)
+    
     latentDenoiseNetwork_model = LatentDenoiseNetwork(latent_channels=vae_model.latent_dim, model_channels=64, num_res_blocks=3)
-
-    keep_last_vae = False
-    device = get_device()
-    if os.path.exists('vae_results/vae_final.pt') and keep_last_vae:
-        model_parameters = torch.load('vae_results/vae_final.pt', map_location=device, weights_only=True)
-        vae_model.load_state_dict(model_parameters)
-    else:
-        trained_vae, history = train_vae(
-            vae_model,
-            train_loader,
-            device=device,
-            val_loader=None,
-            epochs=50,
-            lr=1e-3,
-            beta=1e-5,
-            save_dir='vae_results',
-            checkpoint_freq=10
-        )
-    trained_DCGAN, history_DCGAN = train_DCGAN(
-        dcgan_model,
-        train_loader,
-        device=device,
-        val_loader=None,
-        epochs=50,
-        save_dir='dcgan_results',
-        checkpoint_freq=10
+    
+    trained_vae, history = load_vae(vae_model, train_loader, device)
+    
+    trained_DCGAN, history_DCGAN = load_dcgan(dcgan_model, train_loader, device)
+    
+    trained_PixelUNet, history_PixelUNet = load_diffusion(
+        pixelUNet_model, train_loader, gaussianDiffusion_model, device, vae=None, save_dir="PixelUNet_results", lr=2e-4
     )
-    trained_PixelUNet, history_PixelUNet = train_diffusion(
-        pixelUNet_model,
-        train_loader,
-        gaussianDiffusion_model,
-        device,
-        val_loader=None,
-        epochs=50,
-        lr=2e-4,
-        vae=None,
-        save_dir="PixelUNet_results",
-        checkpoint_freq=10
-    )
+    
     for p in vae_model.parameters():
         p.requires_grad = False
+    
     vae_model.eval()
-    trained_LatentDenoiseNetwork, history_LatentDenoiseNetwork = train_diffusion(
-        latentDenoiseNetwork_model,
-        train_loader,
-        gaussianDiffusion_model,
-        device,
-        val_loader=None,
-        epochs=50,
-        lr=1e-4,
-        vae=vae_model,
-        save_dir="LatentDenoiseNetwork_results",
-        checkpoint_freq=10
+    
+    trained_LatentDenoiseNetwork, history_LatentDenoiseNetwork = load_diffusion(
+        latentDenoiseNetwork_model, train_loader, gaussianDiffusion_model, device, vae=vae_model,
+        save_dir="LatentDenoiseNetwork_results", lr=1e-4
     )

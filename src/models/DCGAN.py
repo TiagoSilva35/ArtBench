@@ -72,8 +72,23 @@ class DCGAN(nn.Module):
             n_cols = tensors.size(0)
             fig, axes = plt.subplots(1, n_cols, figsize=(n_cols * 2, 2), squeeze=False)
             for ax, img in zip(axes[0], tensors):
-                ax.imshow(img.permute(1, 2, 0).numpy())
+                ax.imshow(img.permute(1, 2, 0).numpy(), interpolation='nearest')
                 ax.axis('off')
+            fig.suptitle(title)
+            plt.tight_layout()
+            plt.savefig(path)
+            plt.close(fig)
+
+        def save_comparison_grid(top_row, bottom_row, path, title):
+            top_row = (top_row.cpu().clamp(-1, 1) + 1) / 2
+            bottom_row = (bottom_row.cpu().clamp(-1, 1) + 1) / 2
+            n = min(top_row.size(0), bottom_row.size(0))
+            fig, axes = plt.subplots(2, n, figsize=(n * 2, 4), squeeze=False)
+            for i in range(n):
+                axes[0][i].imshow(top_row[i].permute(1, 2, 0).numpy(), interpolation='nearest')
+                axes[0][i].axis('off')
+                axes[1][i].imshow(bottom_row[i].permute(1, 2, 0).numpy(), interpolation='nearest')
+                axes[1][i].axis('off')
             fig.suptitle(title)
             plt.tight_layout()
             plt.savefig(path)
@@ -81,9 +96,9 @@ class DCGAN(nn.Module):
 
         save_grid(samples, os.path.join(output_dir, f"samples_epoch{epoch:04d}.png"), f"Generated Samples (epoch {epoch})")
 
-        comparison = torch.cat([real.cpu(), samples[:n].cpu()], dim=0)
-        save_grid(
-            comparison,
+        save_comparison_grid(
+            real,
+            samples[:n],
             os.path.join(output_dir, f"comparison_epoch{epoch:04d}.png"),
             f"Real (first row) vs Generated (second row) - Epoch {epoch}"
         )

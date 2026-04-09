@@ -20,7 +20,7 @@ def show_batch_grid(loader, class_names, n_images=36, nrow=6, title='Sample Grid
     np_img = grid.permute(1, 2, 0).cpu().numpy()
 
     plt.figure(figsize=(8, 8))
-    plt.imshow(np_img)
+    plt.imshow(np_img, interpolation='nearest')
     plt.axis('off')
     plt.title(title)
     plt.show()
