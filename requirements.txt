@@ -3,3 +3,6 @@ torch
 matplotlib
 torchvision
 datasets
+torchmetrics
+torch-fidelity
+scipy

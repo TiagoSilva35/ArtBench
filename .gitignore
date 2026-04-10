@@ -10,4 +10,5 @@
 /dcgan_results/
 /PixelUNet_results/
 /LatentDenoiseNetwork_results/
+/evaluation_results/
 *.pyc
