@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import shutil
 import sys
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch_fidelity
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms as T
 from torchvision.utils import make_grid, save_image
@@ -87,6 +90,85 @@ def save_qualitative_grid(images: torch.Tensor, out_path: Path, nrow: int = 8) -
     save_image(grid, out_path)
 
 
+def export_images_to_folder(images: torch.Tensor, out_dir: Path, start_idx: int = 0) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    vis = (images.detach().cpu().clamp(-1, 1) + 1.0) * 0.5
+    for i in range(vis.size(0)):
+        save_image(vis[i], out_dir / f"img_{start_idx + i:06d}.png")
+
+
+def compute_torch_fidelity_prdc(generated_dir: Path, real_dir: Path) -> tuple[float, float, float, float]:
+    tf_metrics = torch_fidelity.calculate_metrics(
+        input1=str(generated_dir),
+        input2=str(real_dir),
+        cuda=torch.cuda.is_available(),
+        isc=False,
+        fid=False,
+        kid=False,
+        prc=True,
+    )
+    precision = float(tf_metrics["precision"])
+    recall = float(tf_metrics["recall"])
+    density = float(tf_metrics.get("density", float("nan")))
+    coverage = float(tf_metrics.get("coverage", float("nan")))
+    return precision, recall, density, coverage
+
+
+def plot_coverage_vs_quality(results: dict[str, tuple[float, float]], output_path: Path) -> None:
+    """
+    results: {model_name: (quality, coverage)} where quality=precision and coverage=recall.
+    """
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    colors = {
+        "vae": "#e41a1c",
+        "dcgan": "#377eb8",
+        "pixelunet": "#4daf4a",
+        "latentdenoiser": "#984ea3",
+    }
+    markers = {
+        "vae": "o",
+        "dcgan": "s",
+        "pixelunet": "^",
+        "latentdenoiser": "D",
+    }
+
+    for model, (quality, coverage) in results.items():
+        ax.scatter(
+            coverage,
+            quality,
+            c=colors.get(model, "gray"),
+            marker=markers.get(model, "o"),
+            s=150,
+            label=model,
+            edgecolors="black",
+            linewidths=1.5,
+        )
+        ax.annotate(
+            model,
+            (coverage, quality),
+            xytext=(5, 5),
+            textcoords="offset points",
+            fontsize=10,
+        )
+
+    ax.set_xlabel("Coverage (Recall)", fontsize=12)
+    ax.set_ylabel("Quality (Precision)", fontsize=12)
+    ax.set_xlim(0, 1.05)
+    ax.set_ylim(0, 1.05)
+    ax.set_title("Quality vs Coverage Trade-off")
+    ax.legend(loc="lower right")
+    ax.grid(True, alpha=0.3)
+
+    ax.axhline(y=0.5, color="gray", linestyle="--", alpha=0.5)
+    ax.axvline(x=0.5, color="gray", linestyle="--", alpha=0.5)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close()
+
+
 def load_vae_from_checkpoint(device: torch.device, checkpoint_path: Path) -> VAE:
     model = VAE(latent_dim=16, num_channels=3, base_channels=32).to(device)
     state = torch.load(checkpoint_path, map_location=device, weights_only=True)
@@ -130,14 +212,21 @@ def run_single_eval(
     metric_batch_size: int,
     metrics_device: torch.device,
     output_dir: Path,
+    real_images_dir: Path,
     vae_model: VAE | None = None,
-) -> tuple[float, float, float]:
+) -> tuple[float, float, float, float, float, float, float]:
     set_global_seed(seed)
 
     fid_metric = build_fid_metric(metrics_device)
     kid_metric = build_kid_metric(metrics_device)
     n_vis = 64
     generated_vis_chunks: list[torch.Tensor] = []
+    run_dir = output_dir / model_key / f"seed_{seed}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    generated_images_dir = run_dir / "generated_images"
+    if generated_images_dir.exists():
+        shutil.rmtree(generated_images_dir)
+    generated_images_dir.mkdir(parents=True, exist_ok=True)
 
     def update_metrics_with_generated_batch(gen_batch: torch.Tensor, start_idx: int) -> None:
         local_offset = 0
@@ -161,6 +250,7 @@ def run_single_eval(
             n = min(gen_batch_size, num_samples - processed)
             generated = sample_vae(vae_model, num_samples=n, device=device, batch_size=n)
             update_metrics_with_generated_batch(generated, processed)
+            export_images_to_folder(generated, generated_images_dir, start_idx=processed)
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
@@ -170,6 +260,7 @@ def run_single_eval(
             n = min(gen_batch_size, num_samples - processed)
             generated = sample_dcgan(dcgan, num_samples=n, device=device, batch_size=n)
             update_metrics_with_generated_batch(generated, processed)
+            export_images_to_folder(generated, generated_images_dir, start_idx=processed)
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
@@ -193,6 +284,7 @@ def run_single_eval(
                 batch_size=n,
             )
             update_metrics_with_generated_batch(generated, processed)
+            export_images_to_folder(generated, generated_images_dir, start_idx=processed)
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
@@ -221,6 +313,7 @@ def run_single_eval(
                 batch_size=n,
             )
             update_metrics_with_generated_batch(generated, processed)
+            export_images_to_folder(generated, generated_images_dir, start_idx=processed)
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
@@ -237,8 +330,8 @@ def run_single_eval(
     kid_std_value = float(kid_std.item())
     kid_metric.reset()
 
-    run_dir = output_dir / model_key / f"seed_{seed}"
-    run_dir.mkdir(parents=True, exist_ok=True)
+    precision, recall, density, coverage = compute_torch_fidelity_prdc(generated_images_dir, real_images_dir)
+
     generated_vis = torch.cat(generated_vis_chunks, dim=0) if generated_vis_chunks else torch.empty(0, 3, IMAGE_SIZE, IMAGE_SIZE)
     save_qualitative_grid(generated_vis, run_dir / "generated_grid.png")
     save_qualitative_grid(real_images, run_dir / "real_grid.png")
@@ -247,7 +340,7 @@ def run_single_eval(
     if device.type == "cuda":
         torch.cuda.empty_cache()
 
-    return fid, kid_mean_value, kid_std_value
+    return fid, kid_mean_value, kid_std_value, precision, recall, density, coverage
 
 
 def aggregate(values: list[float]) -> tuple[float, float]:
@@ -307,6 +400,11 @@ def main() -> None:
         batch_size=args.real_batch_size,
     )
 
+    real_images_dir = args.output_dir / "_torch_fidelity" / f"real_{args.num_samples}"
+    if real_images_dir.exists():
+        shutil.rmtree(real_images_dir)
+    export_images_to_folder(real_images, real_images_dir)
+
     vae_model = None
     if "vae" in args.models or "latentdenoiser" in args.models:
         vae_path = Path("vae_results") / "vae_final.pt"
@@ -323,10 +421,14 @@ def main() -> None:
         fid_values: list[float] = []
         kid_mean_values: list[float] = []
         kid_std_values: list[float] = []
+        precision_values: list[float] = []
+        recall_values: list[float] = []
+        density_values: list[float] = []
+        coverage_values: list[float] = []
 
         for seed in eval_seeds:
             print(f"  - seed={seed}")
-            fid, kid_mean, kid_std = run_single_eval(
+            fid, kid_mean, kid_std, precision, recall, density, coverage = run_single_eval(
                 model_key=model_key,
                 seed=seed,
                 real_images=real_images,
@@ -336,11 +438,16 @@ def main() -> None:
                 metric_batch_size=args.metric_batch_size,
                 metrics_device=metrics_device,
                 output_dir=args.output_dir,
+                real_images_dir=real_images_dir,
                 vae_model=vae_model,
             )
             fid_values.append(fid)
             kid_mean_values.append(kid_mean)
             kid_std_values.append(kid_std)
+            precision_values.append(precision)
+            recall_values.append(recall)
+            density_values.append(density)
+            coverage_values.append(coverage)
             per_run_rows.append(
                 {
                     "model": model_key,
@@ -348,12 +455,23 @@ def main() -> None:
                     "fid": fid,
                     "kid_mean": kid_mean,
                     "kid_std": kid_std,
+                    "precision": precision,
+                    "recall": recall,
+                    "density": density,
+                    "coverage": coverage,
                 }
             )
-            print(f"    FID={fid:.4f} | KID={kid_mean:.6f} ± {kid_std:.6f}")
+            print(
+                f"    FID={fid:.4f} | KID={kid_mean:.6f} ± {kid_std:.6f} | "
+                f"P={precision:.4f} R={recall:.4f} D={density:.4f} C={coverage:.4f}"
+            )
 
         fid_mean, fid_std = aggregate(fid_values)
         kid_mean_of_means, kid_std_across_seeds = aggregate(kid_mean_values)
+        precision_mean, precision_std = aggregate(precision_values)
+        recall_mean, recall_std = aggregate(recall_values)
+        density_mean, density_std = aggregate(density_values)
+        coverage_mean, coverage_std = aggregate(coverage_values)
         summary_rows.append(
             {
                 "model": model_key,
@@ -364,17 +482,32 @@ def main() -> None:
                 "kid_mean": kid_mean_of_means,
                 "kid_std_across_seeds": kid_std_across_seeds,
                 "kid_subset_std_mean": float(np.mean(kid_std_values)),
+                "precision_mean": precision_mean,
+                "precision_std": precision_std,
+                "recall_mean": recall_mean,
+                "recall_std": recall_std,
+                "density_mean": density_mean,
+                "density_std": density_std,
+                "coverage_mean": coverage_mean,
+                "coverage_std": coverage_std,
             }
         )
         print(
             f"  Final ({model_key}): "
             f"FID={fid_mean:.4f} ± {fid_std:.4f} | "
-            f"KID={kid_mean_of_means:.6f} ± {kid_std_across_seeds:.6f}"
+            f"KID={kid_mean_of_means:.6f} ± {kid_std_across_seeds:.6f} | "
+            f"P={precision_mean:.4f}±{precision_std:.4f} "
+            f"R={recall_mean:.4f}±{recall_std:.4f} "
+            f"D={density_mean:.4f}±{density_std:.4f} "
+            f"C={coverage_mean:.4f}±{coverage_std:.4f}"
         )
 
     per_run_csv = args.output_dir / "per_run_metrics.csv"
     with per_run_csv.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["model", "seed", "fid", "kid_mean", "kid_std"])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["model", "seed", "fid", "kid_mean", "kid_std", "precision", "recall", "density", "coverage"],
+        )
         writer.writeheader()
         writer.writerows(per_run_rows)
 
@@ -395,13 +528,28 @@ def main() -> None:
                 "kid_mean",
                 "kid_std_across_seeds",
                 "kid_subset_std_mean",
+                "precision_mean",
+                "precision_std",
+                "recall_mean",
+                "recall_std",
+                "density_mean",
+                "density_std",
+                "coverage_mean",
+                "coverage_std",
             ],
         )
         writer.writeheader()
         writer.writerows(summary_rows)
 
+    coverage_vs_quality: dict[str, tuple[float, float]] = {
+        str(row["model"]): (float(row["precision_mean"]), float(row["recall_mean"])) for row in summary_rows
+    }
+    plot_path = args.output_dir / "quality_vs_coverage.png"
+    plot_coverage_vs_quality(coverage_vs_quality, plot_path)
+
     print(f"\nSaved per-run metrics to: {per_run_csv}")
     print(f"Saved summary metrics to: {summary_csv}")
+    print(f"Saved quality/coverage plot to: {plot_path}")
 
 
 if __name__ == "__main__":
