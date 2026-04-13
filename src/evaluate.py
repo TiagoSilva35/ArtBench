@@ -22,7 +22,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.artbench_local_dataset import load_kaggle_artbench10_splits
 from src.config import IMAGE_SIZE, KAGGLE_ROOT
 from src.dataset_manager.HFloader import HFDatasetTorch
-from src.eval.metrics import build_fid_metric, build_kid_metric, images_to_uint8
+from src.eval.metrics import build_fid_metric, build_kid_metric, images_to_uint8, lerp, slerp
 from src.eval.samplers import (
     sample_dcgan,
     sample_latent_denoiser,
@@ -371,6 +371,137 @@ def aggregate(values: list[float]) -> tuple[float, float]:
     arr = np.asarray(values, dtype=np.float64)
     return float(arr.mean()), float(arr.std(ddof=1) if arr.size > 1 else 0.0)
 
+def make_noise_batch(shape: tuple[int, ...], batch_size: int, seed: int, device: torch.device) -> torch.Tensor:
+    generator = torch.Generator(device=device).manual_seed(seed)
+    noise = torch.randn((batch_size, *shape), generator=generator)
+    return noise.to(device)
+
+def build_interpolation_paths(noise_a: torch.Tensor, noise_b: torch.Tensor, t_values: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    lerp_path = torch.stack([lerp(noise_a, noise_b, float(t)) for t in t_values], dim=0)
+    slerp_path = torch.stack([slerp(noise_a, noise_b, float(t)) for t in t_values], dim=0)
+    return lerp_path, slerp_path
+
+def show_interpolation_comparison(lerp_images: torch.Tensor, slerp_images: torch.Tensor, t_values: torch.Tensor, output_dir: Path, title: str):
+    lerp_images = lerp_images.detach().cpu().float().clamp(0, 1)
+    slerp_images = slerp_images.detach().cpu().float().clamp(0, 1)
+    n = len(t_values)
+    fig, axes = plt.subplots(2, n, figsize=(2.0 * n, 4.0))
+    for row_idx, (row_axes, images, label) in enumerate(zip(axes, [lerp_images, slerp_images], ['lerp', 'slerp'])):
+        for col_idx, (ax, img, t) in enumerate(zip(row_axes, images, t_values)):
+            if img.shape[0] == 1:
+                ax.imshow(img[0], cmap='gray')
+            else:
+                ax.imshow(img.permute(1, 2, 0))
+            if row_idx == 0:
+                ax.set_title(f't={float(t):.2f}')
+            if col_idx == 0:
+                ax.set_ylabel(label)
+            ax.axis('off')
+    fig.suptitle(title)
+    plt.tight_layout()
+    plt.savefig(output_dir / f"{title}.png")
+    plt.show()
+
+def interpolation(model_name:str, interpolation_steps: int, seed_a: int, seed_b: int, output_dir: str, device: torch.device):
+    run_dir = output_dir / model_name / f"seed_{seed_a}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    t_values = torch.linspace(0.0, 1.0, steps=interpolation_steps, device=device)
+
+    model = None
+    if model_name == "vae":
+        vae = load_vae_from_checkpoint(device, Path("vae_results") / "vae_final.pt")
+        noise_a = make_noise_batch(shape=(vae.latent_dim, 2, 2), batch_size=1, seed=seed_a, device=device)[0]
+        noise_b = make_noise_batch(shape=(vae.latent_dim, 2, 2), batch_size=1, seed=seed_b, device=device)[0]
+        lerp_path, slerp_path = build_interpolation_paths(noise_a, noise_b, t_values)
+        generated_lerp = sample_vae(vae, num_samples=interpolation_steps, device=device, batch_size=128, noise=lerp_path)
+        generated_slerp = sample_vae(vae, num_samples=interpolation_steps, device=device, batch_size=128, noise=slerp_path)
+        del vae
+    elif model_name == "dcgan":
+        dcgan = load_dcgan_from_checkpoint(device, Path("dcgan_results") / "dcgan_final.pt")
+        noise_a = make_noise_batch(shape=(dcgan.generator.latent_dim,), batch_size=1, seed=seed_a, device=device)[0]
+        noise_b = make_noise_batch(shape=(dcgan.generator.latent_dim,), batch_size=1, seed=seed_b, device=device)[0]
+        lerp_path, slerp_path = build_interpolation_paths(noise_a, noise_b, t_values)
+        generated_lerp = sample_dcgan(dcgan, num_samples=interpolation_steps, device=device, batch_size=128, noise=lerp_path)
+        generated_slerp = sample_dcgan(dcgan, num_samples=interpolation_steps, device=device, batch_size=128, noise=slerp_path)
+        del dcgan
+    elif model_name == "stylegan":
+        stylegan = load_stylegan_from_checkpoint(device, Path("stylegan_results") / "StyleGAN_final.pt")
+        noise_a = make_noise_batch(shape=(stylegan.z_dim,), batch_size=1, seed=seed_a, device=device)[0]
+        noise_b = make_noise_batch(shape=(stylegan.z_dim,), batch_size=1, seed=seed_b, device=device)[0]
+        lerp_path, slerp_path = build_interpolation_paths(noise_a, noise_b, t_values)
+        generated_lerp = sample_stylegan(stylegan, num_samples=interpolation_steps, device=device, batch_size=64, noise=lerp_path)
+        generated_slerp = sample_stylegan(stylegan, num_samples=interpolation_steps, device=device, batch_size=64, noise=slerp_path)
+        del stylegan
+    elif model_name == "pixelunet":
+        pixel = load_pixel_unet_from_checkpoint(device, Path("PixelUNet_results") / "PixelUNet_final.pt")
+        schedule = GaussianDiffusion(
+            num_timesteps=1000,
+            beta_start=0.0001,
+            beta_end=0.02,
+            device=device,
+        )
+        noise_a = make_noise_batch(shape=(3, IMAGE_SIZE, IMAGE_SIZE), batch_size=1, seed=seed_a, device=device)[0]
+        noise_b = make_noise_batch(shape=(3, IMAGE_SIZE, IMAGE_SIZE), batch_size=1, seed=seed_b, device=device)[0]
+        lerp_path, slerp_path = build_interpolation_paths(noise_a, noise_b, t_values)
+        generated_lerp = sample_pixel_unet(
+            pixel,
+            schedule,
+            num_samples=interpolation_steps,
+            device=device,
+            image_size=IMAGE_SIZE,
+            batch_size=32,
+            noise = lerp_path
+        )
+        generated_slerp = sample_pixel_unet(
+            pixel,
+            schedule,
+            num_samples=interpolation_steps,
+            device=device,
+            image_size=IMAGE_SIZE,
+            batch_size=32,
+            noise = slerp_path
+        )
+        del pixel
+        del schedule
+    elif model_name == "latentdenoiser":
+        vae_model = load_vae_from_checkpoint(device, Path("vae_results") / "vae_final.pt")
+        latent = load_latent_denoiser_from_checkpoint(
+            device, Path("LatentDenoiseNetwork_results") / "LatentDenoiserNetwork_final.pt"
+        )
+        schedule = GaussianDiffusion(
+            num_timesteps=1000,
+            beta_start=0.0001,
+            beta_end=0.02,
+            device=device,
+        )
+        noise_a = make_noise_batch(shape=(vae_model.latent_dim, 2, 2), batch_size=1, seed=seed_a, device=device)[0]
+        noise_b = make_noise_batch(shape=(vae_model.latent_dim, 2, 2), batch_size=1, seed=seed_b, device=device)[0]
+        lerp_path, slerp_path = build_interpolation_paths(noise_a, noise_b, t_values)
+        generated_lerp = sample_latent_denoiser(
+            latent,
+            schedule,
+            vae=vae_model,
+            num_samples=interpolation_steps,
+            device=device,
+            batch_size=32,
+            noise=lerp_path
+        )
+        generated_slerp = sample_latent_denoiser(
+            latent,
+            schedule,
+            vae=vae_model,
+            num_samples=interpolation_steps,
+            device=device,
+            batch_size=32,
+            noise=slerp_path
+        )
+        del latent
+        del schedule
+    else:
+        raise ValueError(f"Unknown model name '{model_name}'")
+
+    show_interpolation_comparison(lerp_images=generated_lerp, slerp_images=generated_slerp, t_values=t_values.cpu(), output_dir=run_dir, title=f"{model_name}_Lerp_vs_Slerp")
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate generative models with FID/KID protocol.")
@@ -489,6 +620,7 @@ def main() -> None:
                 f"    FID={fid:.4f} | KID={kid_mean:.6f} ± {kid_std:.6f} | "
                 f"P={precision:.4f} R={recall:.4f} D={density:.4f} C={coverage:.4f}"
             )
+            interpolation(model_name=model_key, interpolation_steps=10, seed_a=seed, seed_b=seed*2, output_dir=args.output_dir, device=device)
 
         fid_mean, fid_std = aggregate(fid_values)
         kid_mean_of_means, kid_std_across_seeds = aggregate(kid_mean_values)

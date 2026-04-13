@@ -222,25 +222,25 @@ if __name__ == '__main__':
     )
 
     gaussianDiffusion_model = GaussianDiffusion(num_timesteps=1000, beta_start=0.0001, beta_end=0.02, device=device)
-    
+
     pixelUNet_model = PixelUNet(in_channels=3, model_channels=64)
-    
+
     latentDenoiseNetwork_model = LatentDenoiseNetwork(latent_channels=vae_model.latent_dim, model_channels=64, num_res_blocks=3)
-    
+
     trained_vae, history = load_vae(vae_model, train_loader, device)
-    
+
     trained_DCGAN, history_DCGAN = load_dcgan(dcgan_model, train_loader, device)
     trained_StyleGAN, history_StyleGAN = load_stylegan(stylegan_model, train_loader, device)
-    
+
     trained_PixelUNet, history_PixelUNet = load_diffusion(
         pixelUNet_model, train_loader, gaussianDiffusion_model, device, vae=None, save_dir="PixelUNet_results", lr=2e-4
     )
-    
+
     for p in vae_model.parameters():
         p.requires_grad = False
-    
+
     vae_model.eval()
-    
+
     trained_LatentDenoiseNetwork, history_LatentDenoiseNetwork = load_diffusion(
         latentDenoiseNetwork_model, train_loader, gaussianDiffusion_model, device, vae=vae_model,
         save_dir="LatentDenoiseNetwork_results", lr=1e-4

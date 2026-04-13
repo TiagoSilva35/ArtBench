@@ -49,9 +49,11 @@ class LatentDenoiseNetwork(nn.Module):
     # Shape: (num_amostras, dimensões do espaço latente) -> Preciso ainda de descobrir quais são
     # Nota: num_amostrar convém ser quadrado perfeito (16, 25, ...) para ficar bem numa grid
     @torch.no_grad()
-    def sample(self, schedule, shape: tuple[int, int, int, int], device: torch.device, vae=None):
+    def sample(self, schedule, shape: tuple[int, int, int, int], device: torch.device, vae=None, noise: torch.Tensor = None):
+        if noise is not None and noise.shape != shape:
+            raise ValueError(f"Expected noise tensor of shape {shape}, but got {noise.shape}")
         self.eval()
-        x = torch.randn(shape, device=device)
+        x = torch.randn(shape, device=device) if noise is None else noise
 
         for step in reversed(range(schedule.num_timesteps)):
             t = torch.full((shape[0],), step, device=device, dtype=torch.long)
@@ -215,13 +217,16 @@ class PixelUNet(nn.Module):
     # Scheduler é o Diffusion model utilizado (GaussianDiffusion)
     # Shape: (num_amostras, dimensões do espaço latente) -> Preciso ainda de descobrir quais são
     # Nota: num_amostrar convém ser quadrado perfeito (16, 25, ...) para ficar bem numa grid
-    def sample(self, schedule, shape: tuple[int, int, int, int], device: torch.device, vae=None):
+    def sample(self, schedule, shape: tuple[int, int, int, int], device: torch.device, vae=None, noise: torch.Tensor = None):
         if vae is not None:
             print("Warning: Latent Space not implemented for this Denoiser Network (PixelUNet)",
                 "If a VAE was used to generate Latent Space for trainig this model, the sampling might given weird results")
 
+        if noise is not None and noise.shape != shape:
+            raise ValueError(f"Expected noise tensor of shape {shape}, but got {noise.shape}")
+
         self.eval()
-        x = torch.randn(shape, device=device)
+        x = torch.randn(shape, device=device) if noise is None else noise
 
         for step in reversed(range(schedule.num_timesteps)):
             t = torch.full((shape[0],), step, device=device, dtype=torch.long)
