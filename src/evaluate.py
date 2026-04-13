@@ -382,7 +382,6 @@ def show_interpolation_comparison(lerp_images: torch.Tensor, slerp_images: torch
     fig.suptitle(title)
     plt.tight_layout()
     plt.savefig(output_dir / f"{title}.png")
-    plt.show()
 
 def interpolation(model_name:str, interpolation_steps: int, seed_a: int, seed_b: int, output_dir: str, device: torch.device):
     run_dir = output_dir / model_name / f"seed_{seed_a}"
