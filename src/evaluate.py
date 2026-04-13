@@ -11,7 +11,6 @@ import numpy as np
 import torch
 import torch_fidelity
 from torch.utils.data import DataLoader, Subset
-from torchvision import transforms as T
 from torchvision.utils import make_grid, save_image
 
 # Ensure project root is importable when running: python src\evaluate.py
@@ -32,18 +31,12 @@ from src.eval.samplers import (
     set_global_seed,
 )
 from src.helpers.diffusion_helpers import GaussianDiffusion
+from src.helpers.data_utils import build_image_transform, unpack_images
+from src.helpers.utils import get_device
 from src.models.DCGAN import DCGAN
 from src.models.DenoiserNetworks import LatentDenoiseNetwork, PixelUNet
 from src.models.StyleGAN import StyleGAN
 from src.models.vae import VAE
-
-
-def get_device() -> torch.device:
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    if torch.backends.mps.is_available() and torch.backends.mps.is_built():
-        return torch.device("mps")
-    return torch.device("cpu")
 
 
 def load_real_images(
@@ -54,14 +47,7 @@ def load_real_images(
 ) -> torch.Tensor:
     hf_ds = load_kaggle_artbench10_splits(KAGGLE_ROOT)
     train_hf = hf_ds["train"]
-    transform = T.Compose(
-        [
-            T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
-            T.CenterCrop(image_size),
-            T.ToTensor(),
-            T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-        ]
-    )
+    transform = build_image_transform(image_size)
     full_ds = HFDatasetTorch(train_hf, transform=transform)
     if n_samples > len(full_ds):
         raise ValueError(f"Requested {n_samples} real images but dataset has only {len(full_ds)}.")
@@ -77,11 +63,7 @@ def load_real_images(
 
     out = []
     for batch in loader:
-        if len(batch) == 2:
-            x, _ = batch
-        else:
-            x, _, _ = batch
-        out.append(x)
+        out.append(unpack_images(batch))
     return torch.cat(out, dim=0)
 
 
