@@ -6,3 +6,4 @@ datasets
 torchmetrics
 torch-fidelity
 scipy
+optuna

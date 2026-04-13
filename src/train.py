@@ -4,6 +4,7 @@ import os
 from tqdm import tqdm
 from pathlib import Path
 from src.helpers.debugger import DBG
+from src.helpers.data_utils import unpack_images
 from src.models.StyleGan2Loss import StyleGAN2Loss
 
 def train_vae(
@@ -43,12 +44,7 @@ def train_vae(
 
         pbar = tqdm(train_loader, desc=f'Época {epoch}/{epochs} [Treino]')
         for batch_idx, batch in enumerate(pbar):
-            if len(batch) == 2:
-                images, _ = batch
-            else:
-                images, _, _ = batch
-
-            images = images.to(device)
+            images = unpack_images(batch).to(device)
             batch_size = images.size(0)
 
             loss = model.train_step(images, beta=beta)
@@ -69,12 +65,7 @@ def train_vae(
 
             with torch.no_grad():
                 for batch in tqdm(val_loader, desc=f'Época {epoch}/{epochs} [Validação]'):
-                    if len(batch) == 2:
-                        images, _ = batch
-                    else:
-                        images, _, _ = batch
-
-                    images = images.to(device)
+                    images = unpack_images(batch).to(device)
                     batch_size = images.size(0)
 
                     loss = model.compute_loss(images, beta=beta).item()
@@ -94,13 +85,7 @@ def train_vae(
             torch.save(model.state_dict(), checkpoint_path)
             print(f"Checkpoint saved at: {checkpoint_path}")
 
-            sample_batch = next(iter(train_loader))
-            if len(sample_batch) == 2:
-                sample_batch, _ = sample_batch
-            else:
-                sample_batch, _, _ = sample_batch
-
-            sample_batch = sample_batch.to(device)
+            sample_batch = unpack_images(next(iter(train_loader))).to(device)
             model.generate_and_save_images(
                 sample_batch,
                 output_dir=os.path.join(run_dir, "samples"),
@@ -162,12 +147,7 @@ def train_DCGAN(
 
         pbar = tqdm(train_loader, desc=f"Epoch {epoch}/{epochs} [Train]")
         for batch in pbar:
-            if len(batch) == 2:
-                real_imgs, _ = batch
-            else:
-                real_imgs, _, _ = batch
-
-            real_imgs = real_imgs.to(device)
+            real_imgs = unpack_images(batch).to(device)
             batch_size = real_imgs.size(0)
 
             # LABEL SMOOTHING: Use 0.9 for real images instead of 1.0 to prevent D from becoming too confident
@@ -228,8 +208,7 @@ def train_DCGAN(
             fid_metric.reset()
             with torch.no_grad():
                 # Get a batch of real images
-                real_batch, _ = next(iter(val_loader))
-                real_batch = real_batch.to(device)
+                real_batch = unpack_images(next(iter(val_loader))).to(device)
 
                 # Get a batch of fake images
                 z_val = torch.randn(real_batch.size(0), model.generator.latent_dim, device=device)
@@ -305,12 +284,7 @@ def train_diffusion(model, train_loader, schedule, device, val_loader=None, epoc
 
         pbar = tqdm(train_loader, desc=f'Época {epoch}/{epochs} [Treino]', leave=False)
         for batch_idx, batch in enumerate(pbar):
-            if len(batch) == 2:
-                images, _ = batch
-            else:
-                images, _, _ = batch
-
-            images = images.to(device)
+            images = unpack_images(batch).to(device)
 
             # Criar espaço latente, caso uma vae for dada
             if vae is not None:
@@ -332,11 +306,7 @@ def train_diffusion(model, train_loader, schedule, device, val_loader=None, epoc
 
             with torch.no_grad():
                 for batch in tqdm(val_loader, desc=f'Época {epoch}/{epochs} [Validação]'):
-                    if len(batch) == 2:
-                        images, _ = batch
-                    else:
-                        images, _, _ = batch
-                    images = images.to(device)
+                    images = unpack_images(batch).to(device)
 
                     # Criar espaço latente, caso uma vae for dada
                     if vae is not None:
@@ -424,11 +394,7 @@ def train_stylegan(
 
         pbar = tqdm(train_loader, desc=f"Epoch {epoch}/{epochs} [Train StyleGAN]")
         for batch in pbar:
-            if len(batch) == 2:
-                real_imgs, _ = batch
-            else:
-                real_imgs, _, _ = batch
-            real_imgs = real_imgs.to(device)
+            real_imgs = unpack_images(batch).to(device)
             batch_size = real_imgs.size(0)
             real_c = torch.zeros(batch_size, 0, device=device)
             gen_c = torch.zeros(batch_size, 0, device=device)
@@ -490,11 +456,7 @@ def train_stylegan(
             )
             print(f"Checkpoint saved at: {checkpoint_path}")
 
-            sample_batch = next(iter(train_loader))
-            if len(sample_batch) == 2:
-                sample_batch, _ = sample_batch
-            else:
-                sample_batch, _, _ = sample_batch
+            sample_batch = unpack_images(next(iter(train_loader)))
             model.generate_and_save_images(
                 sample_batch.to(device),
                 output_dir=os.path.join(run_dir, "samples"),

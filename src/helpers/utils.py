@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
+import random
 from src.helpers.debugger import DBG 
 from torchvision.utils import make_grid
+
 
 
 def make_subset_indices(n_total: int, fraction: float, seed: int = 42):
@@ -28,3 +31,17 @@ def show_batch_grid(loader, class_names, n_images=36, nrow=6, title='Sample Grid
     # DBG labels for quick inspection
     labels_str = [class_names[int(v)] for v in y]
     DBG(f'Labels: {labels_str}')
+
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def get_device():
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    if torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        return torch.device('mps')
+    return torch.device('cpu')
