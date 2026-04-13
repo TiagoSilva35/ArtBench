@@ -39,6 +39,18 @@ def sample_dcgan(model, num_samples: int, device: torch.device, batch_size: int 
 
 
 @torch.no_grad()
+def sample_stylegan(model, num_samples: int, device: torch.device, batch_size: int = 64) -> torch.Tensor:
+    model.generator.eval()
+    out = []
+    remaining = int(num_samples)
+    while remaining > 0:
+        n = min(batch_size, remaining)
+        out.append(model.sample(n, device=device))
+        remaining -= n
+    return torch.cat(out, dim=0)
+
+
+@torch.no_grad()
 def sample_pixel_unet(model, schedule, num_samples: int, device: torch.device, image_size: int, batch_size: int = 32) -> torch.Tensor:
     model.eval()
     out = []

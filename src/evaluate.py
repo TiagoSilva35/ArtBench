@@ -27,12 +27,14 @@ from src.eval.samplers import (
     sample_dcgan,
     sample_latent_denoiser,
     sample_pixel_unet,
+    sample_stylegan,
     sample_vae,
     set_global_seed,
 )
 from src.helpers.diffusion_helpers import GaussianDiffusion
 from src.models.DCGAN import DCGAN
 from src.models.DenoiserNetworks import LatentDenoiseNetwork, PixelUNet
+from src.models.StyleGAN import StyleGAN
 from src.models.vae import VAE
 
 
@@ -123,12 +125,14 @@ def plot_coverage_vs_quality(results: dict[str, tuple[float, float]], output_pat
     colors = {
         "vae": "#e41a1c",
         "dcgan": "#377eb8",
+        "stylegan": "#ff7f00",
         "pixelunet": "#4daf4a",
         "latentdenoiser": "#984ea3",
     }
     markers = {
         "vae": "o",
         "dcgan": "s",
+        "stylegan": "P",
         "pixelunet": "^",
         "latentdenoiser": "D",
     }
@@ -179,6 +183,15 @@ def load_vae_from_checkpoint(device: torch.device, checkpoint_path: Path) -> VAE
 
 def load_dcgan_from_checkpoint(device: torch.device, checkpoint_path: Path) -> DCGAN:
     model = DCGAN(latent_dim=256, img_channels=3, feature_maps=32).to(device)
+    state = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    model.generator.load_state_dict(state["generator_state_dict"])
+    model.discriminator.load_state_dict(state["discriminator_state_dict"])
+    model.eval()
+    return model
+
+
+def load_stylegan_from_checkpoint(device: torch.device, checkpoint_path: Path) -> StyleGAN:
+    model = StyleGAN(z_dim=256, w_dim=256, img_resolution=IMAGE_SIZE, img_channels=3).to(device)
     state = torch.load(checkpoint_path, map_location=device, weights_only=True)
     model.generator.load_state_dict(state["generator_state_dict"])
     model.discriminator.load_state_dict(state["discriminator_state_dict"])
@@ -265,6 +278,17 @@ def run_single_eval(
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
         del dcgan
+    elif model_key == "stylegan":
+        stylegan = load_stylegan_from_checkpoint(device, Path("stylegan_results") / "StyleGAN_final.pt")
+        while processed < num_samples:
+            n = min(gen_batch_size, num_samples - processed)
+            generated = sample_stylegan(stylegan, num_samples=n, device=device, batch_size=n)
+            update_metrics_with_generated_batch(generated, processed)
+            export_images_to_folder(generated, generated_images_dir, start_idx=processed)
+            if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
+                generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
+            processed += n
+        del stylegan
     elif model_key == "pixelunet":
         pixel = load_pixel_unet_from_checkpoint(device, Path("PixelUNet_results") / "PixelUNet_final.pt")
         schedule = GaussianDiffusion(
@@ -353,8 +377,8 @@ def main() -> None:
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["vae", "dcgan", "pixelunet", "latentdenoiser"],
-        choices=["vae", "dcgan", "pixelunet", "latentdenoiser"],
+        default=["vae", "dcgan", "stylegan", "pixelunet", "latentdenoiser"],
+        choices=["vae", "dcgan", "stylegan", "pixelunet", "latentdenoiser"],
         help="Models to evaluate.",
     )
     parser.add_argument("--num-samples", type=int, default=5000, help="Generated and real sample count.")

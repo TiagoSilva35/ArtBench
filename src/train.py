@@ -4,6 +4,7 @@ import os
 from tqdm import tqdm
 from pathlib import Path
 from src.helpers.debugger import DBG
+from src.models.StyleGan2Loss import StyleGAN2Loss
 
 def train_vae(
     model,
@@ -371,6 +372,147 @@ def train_diffusion(model, train_loader, schedule, device, val_loader=None, epoc
     # store the final model
     final_path = os.path.join(run_dir, f"{model.name}_final.pt")
     torch.save(model.state_dict(), final_path)
+    DBG(f"Modelo final salvo em: {final_path}")
+    DBG(f"Treino completo. Resultados salvos em: {run_dir}")
+    return model, history
+
+
+def train_stylegan(
+    model,
+    train_loader,
+    device,
+    val_loader=None,
+    epochs=50,
+    lr=2e-3,
+    save_dir="stylegan_results",
+    checkpoint_freq=10,
+):
+    del val_loader
+    run_dir = Path(save_dir)
+    os.makedirs(run_dir, exist_ok=True)
+    os.makedirs(run_dir / "checkpoints", exist_ok=True)
+    os.makedirs(run_dir / "samples", exist_ok=True)
+
+    model = model.to(device)
+    model.optimizer_G = optim.Adam(
+        list(model.generator.mapping.parameters()) + list(model.generator.synthesis.parameters()),
+        lr=lr,
+        betas=(0.0, 0.99),
+    )
+    model.optimizer_D = optim.Adam(
+        model.discriminator.parameters(),
+        lr=lr,
+        betas=(0.0, 0.99),
+    )
+    loss_obj = StyleGAN2Loss(
+        device=device,
+        G_mapping=model.generator.mapping,
+        G_synthesis=model.generator.synthesis,
+        D=model.discriminator,
+    )
+
+    history = {"d_loss": [], "g_loss": []}
+    DBG(f"Iniciando treino do StyleGAN por {epochs} épocas")
+    DBG(f"Dispositivo: {device}")
+    DBG(f"Resultados em: {run_dir}")
+
+    for epoch in range(1, epochs + 1):
+        model.train()
+        g_loss_epoch = 0.0
+        d_loss_epoch = 0.0
+        n_batches = 0
+
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch}/{epochs} [Train StyleGAN]")
+        for batch in pbar:
+            if len(batch) == 2:
+                real_imgs, _ = batch
+            else:
+                real_imgs, _, _ = batch
+            real_imgs = real_imgs.to(device)
+            batch_size = real_imgs.size(0)
+            real_c = torch.zeros(batch_size, 0, device=device)
+            gen_c = torch.zeros(batch_size, 0, device=device)
+            gen_z = torch.randn(batch_size, model.z_dim, device=device)
+
+            model.optimizer_G.zero_grad(set_to_none=True)
+            loss_obj.accumulate_gradients(
+                phase="Gboth",
+                real_img=real_imgs,
+                real_c=real_c,
+                gen_z=gen_z,
+                gen_c=gen_c,
+                sync=True,
+                gain=1.0,
+            )
+            model.optimizer_G.step()
+
+            model.optimizer_D.zero_grad(set_to_none=True)
+            loss_obj.accumulate_gradients(
+                phase="Dboth",
+                real_img=real_imgs,
+                real_c=real_c,
+                gen_z=gen_z,
+                gen_c=gen_c,
+                sync=True,
+                gain=1.0,
+            )
+            model.optimizer_D.step()
+
+            with torch.no_grad():
+                fake_imgs = model.generator(gen_z, gen_c)
+                d_real = torch.nn.functional.softplus(-model.discriminator(real_imgs, real_c)).mean()
+                d_fake = torch.nn.functional.softplus(model.discriminator(fake_imgs, gen_c)).mean()
+                g_loss = torch.nn.functional.softplus(-model.discriminator(fake_imgs, gen_c)).mean()
+                d_loss = d_real + d_fake
+
+            g_loss_epoch += float(g_loss.item())
+            d_loss_epoch += float(d_loss.item())
+            n_batches += 1
+            pbar.set_postfix({"D Loss": f"{d_loss.item():.4f}", "G Loss": f"{g_loss.item():.4f}"})
+
+        avg_d_loss = d_loss_epoch / max(n_batches, 1)
+        avg_g_loss = g_loss_epoch / max(n_batches, 1)
+        history["d_loss"].append(avg_d_loss)
+        history["g_loss"].append(avg_g_loss)
+        DBG(f"Época {epoch} - D Loss: {avg_d_loss:.4f}, G Loss: {avg_g_loss:.4f}")
+
+        if epoch % checkpoint_freq == 0 or epoch == epochs:
+            checkpoint_path = run_dir / "checkpoints" / f"{model.name}_epoch_{epoch:03d}.pt"
+            torch.save(
+                {
+                    "epoch": epoch,
+                    "generator_state_dict": model.generator.state_dict(),
+                    "discriminator_state_dict": model.discriminator.state_dict(),
+                    "optimizer_G_state_dict": model.optimizer_G.state_dict(),
+                    "optimizer_D_state_dict": model.optimizer_D.state_dict(),
+                },
+                checkpoint_path,
+            )
+            print(f"Checkpoint saved at: {checkpoint_path}")
+
+            sample_batch = next(iter(train_loader))
+            if len(sample_batch) == 2:
+                sample_batch, _ = sample_batch
+            else:
+                sample_batch, _, _ = sample_batch
+            model.generate_and_save_images(
+                sample_batch.to(device),
+                output_dir=os.path.join(run_dir, "samples"),
+                epoch=epoch,
+                num_samples=8,
+            )
+
+    final_path = run_dir / f"{model.name}_final.pt"
+    torch.save(
+        {
+            "epoch": epochs,
+            "generator_state_dict": model.generator.state_dict(),
+            "discriminator_state_dict": model.discriminator.state_dict(),
+            "optimizer_G_state_dict": model.optimizer_G.state_dict(),
+            "optimizer_D_state_dict": model.optimizer_D.state_dict(),
+        },
+        final_path,
+    )
     DBG(f"Modelo final salvo em: {final_path}")
     DBG(f"Treino completo. Resultados salvos em: {run_dir}")
     return model, history

@@ -17,10 +17,11 @@ from src.dataset_manager.HFloader import HFDatasetTorch
 from src.helpers.utils import make_subset_indices, show_batch_grid
 from src.helpers.csv_handler import load_ids_from_training_csv, export_split_to_folder
 from src.helpers.diffusion_helpers import GaussianDiffusion
-from src.train import train_vae, train_DCGAN, train_diffusion
+from src.train import train_vae, train_DCGAN, train_diffusion, train_stylegan
 from src.models.vae import VAE
 from src.models.DCGAN import DCGAN
 from src.models.DenoiserNetworks import PixelUNet, LatentDenoiseNetwork
+from src.models.StyleGAN import StyleGAN
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -122,6 +123,35 @@ def load_diffusion(model, train_loader, gaussian_diffusion, device, vae, save_di
     )
 
 
+def load_stylegan(model, train_loader, device):
+    final_path = Path("stylegan_results") / "StyleGAN_final.pt"
+    checkpoint_path = final_path
+    if not checkpoint_path.exists():
+        checkpoint_path = find_latest_checkpoint(Path("stylegan_results") / "checkpoints", "StyleGAN_epoch_*.pt")
+
+    if checkpoint_path is not None and checkpoint_path.exists():
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+        model.generator.load_state_dict(checkpoint["generator_state_dict"])
+        model.discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
+        if "optimizer_G_state_dict" in checkpoint:
+            model.optimizer_G.load_state_dict(checkpoint["optimizer_G_state_dict"])
+        if "optimizer_D_state_dict" in checkpoint:
+            model.optimizer_D.load_state_dict(checkpoint["optimizer_D_state_dict"])
+        DBG(f"Loaded full StyleGAN checkpoint: {checkpoint_path}")
+        return model, None
+
+    return train_stylegan(
+        model,
+        train_loader,
+        device=device,
+        val_loader=None,
+        epochs=50,
+        lr=2e-3,
+        save_dir="stylegan_results",
+        checkpoint_freq=10,
+    )
+
+
 set_seed(42)
 device = get_device()
 if str(SCRIPTS_DIR) not in sys.path:
@@ -183,6 +213,13 @@ if __name__ == '__main__':
 
     vae_model = VAE(latent_dim=16, num_channels=3, base_channels=32)
     dcgan_model = DCGAN(latent_dim=256, img_channels=3, feature_maps=32)
+    stylegan_model = StyleGAN(
+        z_dim=256,
+        w_dim=256,
+        img_resolution=IMAGE_SIZE,
+        img_channels=3,
+        mapping_layers=6,
+    )
 
     gaussianDiffusion_model = GaussianDiffusion(num_timesteps=1000, beta_start=0.0001, beta_end=0.02, device=device)
     
@@ -193,6 +230,7 @@ if __name__ == '__main__':
     trained_vae, history = load_vae(vae_model, train_loader, device)
     
     trained_DCGAN, history_DCGAN = load_dcgan(dcgan_model, train_loader, device)
+    trained_StyleGAN, history_StyleGAN = load_stylegan(stylegan_model, train_loader, device)
     
     trained_PixelUNet, history_PixelUNet = load_diffusion(
         pixelUNet_model, train_loader, gaussianDiffusion_model, device, vae=None, save_dir="PixelUNet_results", lr=2e-4
