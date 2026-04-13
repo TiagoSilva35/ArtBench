@@ -46,8 +46,15 @@ def _init():
         sources = [os.path.join(os.path.dirname(__file__), s) for s in sources]
         try:
             _plugin = custom_ops.get_plugin('bias_act_plugin', sources=sources, extra_cuda_cflags=['--use_fast_math'])
-        except:
-            warnings.warn('Failed to build CUDA kernels for bias_act. Falling back to slow reference implementation. Details:\n\n' + traceback.format_exc())
+        except Exception as exc:
+            msg = str(exc)
+            if 'Could not find MSVC/GCC/CLANG installation' in msg:
+                warnings.warn(
+                    'CUDA plugin unavailable for bias_act (compiler toolchain not found). '
+                    'Using slow reference implementation. Install MSVC Build Tools (Desktop development with C++) for faster kernels.'
+                )
+            else:
+                warnings.warn('Failed to build CUDA kernels for bias_act. Falling back to slow reference implementation. Details:\n\n' + traceback.format_exc())
     return _plugin is not None
 
 #----------------------------------------------------------------------------
