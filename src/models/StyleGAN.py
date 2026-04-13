@@ -54,9 +54,11 @@ class StyleGAN(nn.Module):
         )
 
     @torch.no_grad()
-    def sample(self, num_samples: int, device: torch.device, truncation_psi: float = 1.0) -> torch.Tensor:
+    def sample(self, num_samples: int, device: torch.device, truncation_psi: float = 1.0, noise: torch.Tensor = None) -> torch.Tensor:
+        if noise is not None and noise.shape != (num_samples, self.z_dim):
+            raise ValueError(f"Expected noise tensor of shape {(num_samples, self.z_dim)}, but got {noise.shape}")
         self.generator.eval()
-        z = torch.randn(num_samples, self.z_dim, device=device)
+        z = torch.randn(num_samples, self.z_dim, device=device) if noise is None else noise
         c = torch.zeros(num_samples, 0, device=device)
         return self.generator(z, c, truncation_psi=truncation_psi)
 

@@ -52,8 +52,10 @@ class VAE(nn.Module):
         # Adam optimizer (create after modules so parameters are registered)
         self.optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
 
-    def sample(self, num_samples: int, device: torch.device) -> torch.Tensor:
-        z = torch.randn(num_samples, self.latent_dim, 2, 2, device=device)
+    def sample(self, num_samples: int, device: torch.device, noise: torch.Tensor = None) -> torch.Tensor:
+        if noise is not None and noise.shape != (num_samples, self.latent_dim, 2, 2):
+            raise ValueError(f"Expected noise tensor of shape {(num_samples, self.latent_dim, 2, 2)}, but got {noise.shape}")
+        z = torch.randn(num_samples, self.latent_dim, 2, 2, device=device) if noise is None else noise
         return self.decode(z)
 
     def encode(self, x: torch.Tensor):

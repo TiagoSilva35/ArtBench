@@ -28,3 +28,28 @@ def build_kid_metric(device: torch.device) -> KernelInceptionDistance:
         subset_size=100,
         normalize=False,
     ).to(device)
+
+def lerp(z0, z1, t):
+    z0 = z0*(1-t)
+    z1 = z1*t
+    return z0 + z1
+
+def slerp(z0, z1, t, eps=1e-7):
+    shape = z0.shape
+    z0 = z0.flatten()
+    z1 = z1.flatten()
+
+    u0 = z0/torch.sqrt(torch.sum(z0**2))
+    u1 = z1/torch.sqrt(torch.sum(z1**2))
+
+    dot = u0 @ u1
+    w = torch.acos(dot)
+
+    if torch.sin(w) < eps:
+        return lerp(z0, z1, t)
+
+    var1 = torch.sin((1-t)*w)/torch.sin(w)
+    var2 = torch.sin(t*w)/torch.sin(w)
+
+    res = var1*z0 + var2*z1
+    return torch.reshape(res, shape)
