@@ -10,7 +10,7 @@
 \usepackage{float}
 
 \begin{document}
-
+\raggedbottom
 \title{ArtBench-10 Generative Modeling: A Comparative Study of VAE, GAN, and Diffusion Models}
 \author{Tiago Silva \and João Coelho}
 \institute{University of Coimbra}
@@ -50,8 +50,77 @@
 
 
 \section{Experimental Design}
-
 \subsection{Hyperparameter Optimization Strategy}
+We performed hyperparameter optimization with Bayesian optimization (Optuna). To keep the search feasible on standard hardware, 
+tuning was conducted on a development subset comprising 20\% of the training data. For each model family, candidate configurations 
+were trained on a training split and selected using performance on a held-out validation split. We minimized the following 
+surrogate objectives: (i) \textit{VAE}: validation reconstruction loss; (ii) \textit{GAN}-based models: validation sum of discriminator 
+and generator losses; (iii) \textit{Diffusion models}: validation denoising loss under a fixed Gaussian noise schedule.
+The hyperparameter search spaces are summarized in Table~\ref{tab:hpo_spaces}, and the best configurations found on the studies are 
+reported in Table~\ref{tab:hpo_best}. We used validation losses as surrogates during tuning because FID/KID are computationally expensive 
+and high-variance at the per-trial scale: they require generating large sample sets and repeated feature extraction. In contrast, validation losses are 
+available at each epoch and exhibit lower variance which improves sample efficiency under limited computational resources. We note, however, that GAN losses are far from beeing perfect proxies 
+for perceptual sample quality; therefore, we use this objective only for hyperparameter selection during tuning and rely on qualitative inspection 
+for the selected final parameters. Aditionally, there was no tuning on the StyleGan due to its high computational cost, and we used the default hyperparameters 
+from the original implementation. After selecting hyperparameters, the final models were retrained using the full training set. 
+\begin{table}[H]
+    \centering
+    \caption{Hyperparameter search spaces used in Bayesian optimization (dev20).}
+    \label{tab:hpo_spaces}
+    \begin{tabular}{p{0.2\textwidth}p{0.3\textwidth}p{0.5\textwidth}}
+        \toprule
+        \textbf{Model} & \textbf{Parameters} & \textbf{Values / Range} \\
+        \midrule
+        VAE &
+        latent\_dim, base\_channels, batch\_size &
+        $\{16,32,64\}$; $\{16,32,64\}$; $\{32,64,128\}$ \\
+        & lr, $\beta$ &
+        $[10^{-4}, 3\times 10^{-3}]$ log-uniform; $[10^{-6}, 10^{-3}]$ log-uniform \\
+        \midrule
+        DCGAN &
+        latent\_dim, feature\_maps, batch\_size &
+        $\{128,256,512\}$; $\{32,64\}$; $\{32,64,128\}$ \\
+        & lr, $\beta_1$, real\_label &
+        $[10^{-4}, 5\times 10^{-4}]$ log-uniform; $[0.3,0.7]$; $[0.85,1.0]$ \\
+        \midrule
+        PixelUNet &
+        model\_channels, batch\_size, num\_timesteps &
+        $\{32,64,96\}$; $\{16,32,64\}$; $\{500,1000\}$ \\
+        & lr &
+        $[10^{-4}, 5\times 10^{-4}]$ log-uniform \\
+        \midrule
+        LatentDenoiser &
+        model\_channels, num\_res\_blocks, batch\_size &
+        $\{32,64,96\}$; $\{2,3,4\}$; $\{16,32,64\}$ \\
+        & lr, num\_timesteps &
+        $[10^{-4}, 5\times 10^{-4}]$ log-uniform; $\{500,1000\}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+
+\begin{table}[H]
+    \centering
+    \caption{Best configurations obtained.}
+    \label{tab:hpo_best}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Parameter} & \textbf{VAE} & \textbf{DCGAN} \\
+        \midrule
+        Best objective value & 0.02658 & 1.68158 \\
+        Learning rate & 0.0005317 & 0.0001261 \\
+        Batch size & 32 & 32 \\
+        Latent dimension & 32 & 256 \\
+        Base channels / feature maps & 64 & 64 \\
+        $\beta$ (VAE) & $1.14 \times 10^{-6}$ & -- \\
+        $\beta_1$ (Adam, DCGAN) & -- & 0.4813 \\
+        real\_label (DCGAN) & -- & 0.9836 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Across the selected configurations (Table~\ref{tab:hpo_best}), both the VAE and DCGAN favored a relatively small batch size ($32$), suggesting that larger batches did not provide a validation advantage under our training budget. For the VAE, the best trial used a low-dimensional latent ($32$) together with higher base channel capacity ($64$) and a very small KL weight ($\beta \approx 10^{-6}$), indicating that stronger regularization was detrimental to reconstruction on this dataset. For DCGAN, the best trial used $z\!=\!256$, feature maps $64$, a comparatively low learning rate ($1.26\times 10^{-4}$), moderate Adam $\beta_1$ (0.48), and mild one-sided label smoothing (real\_label $\approx 0.98$), consistent with stabilizing discriminator training.
 
 \subsection{Evaluation Protocol}
 
