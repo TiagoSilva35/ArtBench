@@ -1,0 +1,13 @@
+{
+  "model": "pixelunet",
+  "study_name": "artbench_hpo_pixelunet",
+  "best_value": 0.035835943724368775,
+  "best_params": {
+    "model_channels": 64,
+    "batch_size": 16,
+    "lr": 0.00047487990456746845,
+    "num_timesteps": 1000
+  },
+  "hpo_stage": "dev20",
+  "trials_completed": 20
+}

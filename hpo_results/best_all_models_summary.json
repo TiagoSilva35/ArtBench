@@ -1,0 +1,29 @@
+{
+  "pixelunet": {
+    "model": "pixelunet",
+    "study_name": "artbench_hpo_pixelunet",
+    "best_value": 0.035835943724368775,
+    "best_params": {
+      "model_channels": 64,
+      "batch_size": 16,
+      "lr": 0.00047487990456746845,
+      "num_timesteps": 1000
+    },
+    "hpo_stage": "dev20",
+    "trials_completed": 20
+  },
+  "latentdenoiser": {
+    "model": "latentdenoiser",
+    "study_name": "artbench_hpo_latentdenoiser",
+    "best_value": 0.2598439953289926,
+    "best_params": {
+      "model_channels": 64,
+      "num_res_blocks": 4,
+      "batch_size": 32,
+      "lr": 0.00017691984292534283,
+      "num_timesteps": 1000
+    },
+    "hpo_stage": "dev20",
+    "trials_completed": 20
+  }
+}
