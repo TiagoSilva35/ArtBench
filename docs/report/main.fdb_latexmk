@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1776183057.6633 "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" "main.pdf" "main" 1776183057.95027 0
-  "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" 1776183057.50915 6232 6d85d3cd021b13934e6d59767d5877d4 ""
+["pdflatex"] 1776191381.38579 "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" "main.pdf" "main" 1776191381.67456 0
+  "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" 1776191381.21745 6368 0e22624b152999e37fad72f9df5bbaa3 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1772380719 2971 def0b6c1f0b107b3b936def894055589 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/map/fontname/texfonts.map" 1772380719 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map" 1772380719 5541360 f183aac233c4cd1e5ef882fcbe8e7096 ""
@@ -89,9 +89,9 @@
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/web2c/texmf.cnf" 1772380719 43633 14bbc273cebd985e64ab1a698333eaf9 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-var/web2c/pdftex/pdflatex.fmt" 1772380719 3636956 5168b884cb430e6a6336cfea08fa659a ""
   "llncs.cls" 1776154541.31438 43401 6bb5881f543faf590aa3e2c129be0e96 ""
-  "main.aux" 1776183057.90562 3318 fbbdbf3879943b6bc7846ba4cc97b751 "pdflatex"
-  "main.out" 1776183057.90596 506 db37d499795d4f98382b565ff469e7b5 "pdflatex"
-  "main.tex" 1776183057.50915 6232 6d85d3cd021b13934e6d59767d5877d4 ""
+  "main.aux" 1776191381.6312 3302 7ddfcf89a2434b61d92230e6bf4dbe15 "pdflatex"
+  "main.out" 1776191381.63154 506 db37d499795d4f98382b565ff469e7b5 "pdflatex"
+  "main.tex" 1776191381.21745 6368 0e22624b152999e37fad72f9df5bbaa3 ""
   (generated)
   "main.aux"
   "main.log"

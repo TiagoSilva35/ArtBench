@@ -62,10 +62,10 @@ and high-variance at the per-trial scale: they require generating large sample s
 available at each epoch and exhibit lower variance which improves sample efficiency under limited computational resources. We note, however, that GAN losses are far from beeing perfect proxies 
 for perceptual sample quality; therefore, we use this objective only for hyperparameter selection during tuning and rely on qualitative inspection 
 for the selected final parameters. Aditionally, there was no tuning on the StyleGan due to its high computational cost, and we used the default hyperparameters 
-from the original implementation. After selecting hyperparameters, the final models were retrained using the full training set. 
+from the original implementation.
 \begin{table}[H]
     \centering
-    \caption{Hyperparameter search spaces used in Bayesian optimization (dev20).}
+    \caption{Hyperparameter search spaces used in Bayesian optimization.}
     \label{tab:hpo_spaces}
     \begin{tabular}{p{0.2\textwidth}p{0.3\textwidth}p{0.5\textwidth}}
         \toprule
@@ -123,6 +123,9 @@ from the original implementation. After selecting hyperparameters, the final mod
 Across the selected configurations (Table~\ref{tab:hpo_best}), both the VAE and DCGAN favored a relatively small batch size ($32$), suggesting that larger batches did not provide a validation advantage under our training budget. For the VAE, the best trial used a low-dimensional latent ($32$) together with higher base channel capacity ($64$) and a very small KL weight ($\beta \approx 10^{-6}$), indicating that stronger regularization was detrimental to reconstruction on this dataset. For DCGAN, the best trial used $z\!=\!256$, feature maps $64$, a comparatively low learning rate ($1.26\times 10^{-4}$), moderate Adam $\beta_1$ (0.48), and mild one-sided label smoothing (real\_label $\approx 0.98$), consistent with stabilizing discriminator training.
 
 \subsection{Evaluation Protocol}
+After all sweeps are completed, we use the hyperparameters from table \ref{tab:hpo_best} to train the model
+on the full training set. We compute the FID and KID (computed ) metrics, comparing 5,000 generated samples to 5,000 real samples
+
 
 \section{Results and Interpretation}
 

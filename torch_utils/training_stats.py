@@ -22,12 +22,17 @@ from . import misc
 
 _num_moments    = 3             # [num_scalars, sum_of_scalars, sum_of_squares]
 _reduce_dtype   = torch.float32 # Data type to use for initial per-tensor reduction.
-_counter_dtype  = torch.float64 # Data type to use for the internal counters.
+_counter_dtype  = torch.float64 # Data type to use for the internal CPU counters.
 _rank           = 0             # Rank of the current process.
 _sync_device    = None          # Device to use for multiprocess communication. None = single-process.
 _sync_called    = False         # Has _sync() been called yet?
 _counters       = dict()        # Running counters on each device, updated by report(): name => device => torch.Tensor
 _cumulative     = dict()        # Cumulative counters on the CPU, updated by _sync(): name => torch.Tensor
+
+#----------------------------------------------------------------------------
+
+def _counter_dtype_for_device(device):
+    return torch.float32 if device.type == 'mps' else _counter_dtype
 
 #----------------------------------------------------------------------------
 
@@ -90,7 +95,7 @@ def report(name, value):
         elems.square().sum(),
     ])
     assert moments.ndim == 1 and moments.shape[0] == _num_moments
-    moments = moments.to(_counter_dtype)
+    moments = moments.to(_counter_dtype_for_device(moments.device))
 
     device = moments.device
     if device not in _counters[name]:
@@ -244,9 +249,10 @@ def _sync(names):
     deltas = []
     device = _sync_device if _sync_device is not None else torch.device('cpu')
     for name in names:
-        delta = torch.zeros([_num_moments], dtype=_counter_dtype, device=device)
+        delta_dtype = _counter_dtype_for_device(device)
+        delta = torch.zeros([_num_moments], dtype=delta_dtype, device=device)
         for counter in _counters[name].values():
-            delta.add_(counter.to(device))
+            delta.add_(counter.to(device=device, dtype=delta_dtype))
             counter.copy_(torch.zeros_like(counter))
         deltas.append(delta)
     deltas = torch.stack(deltas)
@@ -256,7 +262,7 @@ def _sync(names):
         torch.distributed.all_reduce(deltas)
 
     # Update cumulative values.
-    deltas = deltas.cpu()
+    deltas = deltas.cpu().to(_counter_dtype)
     for idx, name in enumerate(names):
         if name not in _cumulative:
             _cumulative[name] = torch.zeros([_num_moments], dtype=_counter_dtype)
