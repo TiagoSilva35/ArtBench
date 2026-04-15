@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -155,17 +156,90 @@ def plot_coverage_vs_quality(results: dict[str, tuple[float, float]], output_pat
     plt.close()
 
 
+def _count_indexed_blocks(state: dict[str, torch.Tensor], prefix: str) -> int:
+    pattern = re.compile(rf"^{re.escape(prefix)}\.(\d+)\.")
+    indices: set[int] = set()
+    for key in state:
+        match = pattern.match(key)
+        if match:
+            indices.add(int(match.group(1)))
+    return (max(indices) + 1) if indices else 0
+
+
+def infer_vae_architecture(state: dict[str, torch.Tensor]) -> tuple[int, int]:
+    if "fc_mu.weight" not in state:
+        raise KeyError("Missing key 'fc_mu.weight' in VAE checkpoint.")
+    latent_dim = int(state["fc_mu.weight"].shape[0])
+    enc_out_dim = int(state["fc_mu.weight"].shape[1])
+    if enc_out_dim % 8 != 0:
+        raise ValueError(f"Cannot infer VAE base_channels from encoder dim {enc_out_dim}.")
+    base_channels = enc_out_dim // 8
+    return latent_dim, base_channels
+
+
+def infer_dcgan_architecture(state: dict[str, dict[str, torch.Tensor]]) -> tuple[int, int, int]:
+    g_state = state["generator_state_dict"]
+    first_weight = g_state["net.0.weight"]
+    last_weight = g_state["net.9.weight"]
+    latent_dim = int(first_weight.shape[0])
+    feature_maps = int(first_weight.shape[1]) // 4
+    img_channels = int(last_weight.shape[1])
+    return latent_dim, img_channels, feature_maps
+
+
+def infer_stylegan_architecture(state: dict[str, dict[str, torch.Tensor]]) -> tuple[int, int, int, int, int]:
+    g_state = state["generator_state_dict"]
+
+    fc_keys = [k for k in g_state if re.fullmatch(r"mapping\.fc\d+\.weight", k)]
+    if not fc_keys:
+        raise KeyError("Missing mapping FC weights in StyleGAN checkpoint.")
+    mapping_layers = len(fc_keys)
+    z_dim = int(g_state["mapping.fc0.weight"].shape[1])
+    w_dim = int(g_state["mapping.fc0.weight"].shape[0])
+
+    torgb_keys = [k for k in g_state if k.endswith("torgb.weight")]
+    if not torgb_keys:
+        raise KeyError("Missing ToRGB weights in StyleGAN checkpoint.")
+    img_channels = int(g_state[torgb_keys[-1]].shape[0])
+
+    noise_keys = [k for k in g_state if k.endswith("noise_const")]
+    if not noise_keys:
+        raise KeyError("Missing noise_const buffers in StyleGAN checkpoint.")
+    img_resolution = max(int(g_state[k].shape[-1]) for k in noise_keys)
+
+    return z_dim, w_dim, img_resolution, img_channels, mapping_layers
+
+
+def infer_pixel_unet_architecture(state: dict[str, torch.Tensor]) -> tuple[int, int]:
+    init_weight = state["init_conv.weight"]
+    model_channels = int(init_weight.shape[0])
+    in_channels = int(init_weight.shape[1])
+    return in_channels, model_channels
+
+
+def infer_latent_denoiser_architecture(state: dict[str, torch.Tensor]) -> tuple[int, int, int]:
+    init_weight = state["init_conv.weight"]
+    model_channels = int(init_weight.shape[0])
+    latent_channels = int(init_weight.shape[1])
+    num_res_blocks = _count_indexed_blocks(state, "res_blocks")
+    if num_res_blocks == 0:
+        raise ValueError("Cannot infer num_res_blocks from latent denoiser checkpoint.")
+    return latent_channels, model_channels, num_res_blocks
+
+
 def load_vae_from_checkpoint(device: torch.device, checkpoint_path: Path) -> VAE:
-    model = VAE(latent_dim=16, num_channels=3, base_channels=32).to(device)
     state = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    latent_dim, base_channels = infer_vae_architecture(state)
+    model = VAE(latent_dim=latent_dim, num_channels=3, base_channels=base_channels).to(device)
     model.load_state_dict(state)
     model.eval()
     return model
 
 
 def load_dcgan_from_checkpoint(device: torch.device, checkpoint_path: Path) -> DCGAN:
-    model = DCGAN(latent_dim=256, img_channels=3, feature_maps=32).to(device)
     state = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    latent_dim, img_channels, feature_maps = infer_dcgan_architecture(state)
+    model = DCGAN(latent_dim=latent_dim, img_channels=img_channels, feature_maps=feature_maps).to(device)
     model.generator.load_state_dict(state["generator_state_dict"])
     model.discriminator.load_state_dict(state["discriminator_state_dict"])
     model.eval()
@@ -173,8 +247,15 @@ def load_dcgan_from_checkpoint(device: torch.device, checkpoint_path: Path) -> D
 
 
 def load_stylegan_from_checkpoint(device: torch.device, checkpoint_path: Path) -> StyleGAN:
-    model = StyleGAN(z_dim=256, w_dim=256, img_resolution=IMAGE_SIZE, img_channels=3).to(device)
     state = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    z_dim, w_dim, img_resolution, img_channels, mapping_layers = infer_stylegan_architecture(state)
+    model = StyleGAN(
+        z_dim=z_dim,
+        w_dim=w_dim,
+        img_resolution=img_resolution,
+        img_channels=img_channels,
+        mapping_layers=mapping_layers,
+    ).to(device)
     model.generator.load_state_dict(state["generator_state_dict"])
     model.discriminator.load_state_dict(state["discriminator_state_dict"])
     model.eval()
@@ -182,16 +263,22 @@ def load_stylegan_from_checkpoint(device: torch.device, checkpoint_path: Path) -
 
 
 def load_pixel_unet_from_checkpoint(device: torch.device, checkpoint_path: Path) -> PixelUNet:
-    model = PixelUNet(in_channels=3, model_channels=64).to(device)
     state = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    in_channels, model_channels = infer_pixel_unet_architecture(state)
+    model = PixelUNet(in_channels=in_channels, model_channels=model_channels).to(device)
     model.load_state_dict(state)
     model.eval()
     return model
 
 
 def load_latent_denoiser_from_checkpoint(device: torch.device, checkpoint_path: Path) -> LatentDenoiseNetwork:
-    model = LatentDenoiseNetwork(latent_channels=16, model_channels=64, num_res_blocks=3).to(device)
     state = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    latent_channels, model_channels, num_res_blocks = infer_latent_denoiser_architecture(state)
+    model = LatentDenoiseNetwork(
+        latent_channels=latent_channels,
+        model_channels=model_channels,
+        num_res_blocks=num_res_blocks,
+    ).to(device)
     model.load_state_dict(state)
     model.eval()
     return model
@@ -355,7 +442,7 @@ def aggregate(values: list[float]) -> tuple[float, float]:
 
 def make_noise_batch(shape: tuple[int, ...], batch_size: int, seed: int, device: torch.device) -> torch.Tensor:
     generator = torch.Generator(device=device).manual_seed(seed)
-    noise = torch.randn((batch_size, *shape), generator=generator)
+    noise = torch.randn((batch_size, *shape), generator=generator, device=device)
     return noise.to(device)
 
 def build_interpolation_paths(noise_a: torch.Tensor, noise_b: torch.Tensor, t_values: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -489,8 +576,8 @@ def main() -> None:
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["vae", "dcgan", "stylegan", "pixelunet", "latentdenoiser"],
-        choices=["vae", "dcgan", "stylegan", "pixelunet", "latentdenoiser"],
+        default=["vae", "dcgan", "pixelunet", "latentdenoiser"],
+        choices=["vae", "dcgan", "pixelunet", "latentdenoiser"],
         help="Models to evaluate.",
     )
     parser.add_argument("--num-samples", type=int, default=5000, help="Generated and real sample count.")
