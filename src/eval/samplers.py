@@ -34,7 +34,7 @@ def sample_dcgan(model, num_samples: int, device: torch.device, batch_size: int 
         raise ValueError(f"Latent dimension mismatch: model expects {num_samples, latent_dim}, but noise tensor has shape {noise.shape}")
     while remaining > 0:
         n = min(batch_size, remaining)
-        z = torch.randn(n, latent_dim, device=device) if noise is None else noise[n:]
+        z = torch.randn(n, latent_dim, device=device) if noise is None else noise[num_samples-remaining:num_samples-remaining+n]
         out.append(model.generator(z))
         remaining -= n
     return torch.cat(out, dim=0)
