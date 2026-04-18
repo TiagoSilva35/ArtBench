@@ -124,7 +124,8 @@ Across the selected configurations (Table~\ref{tab:hpo_best}), both the VAE and 
 
 \subsection{Evaluation Protocol}
 After all sweeps are completed, we use the hyperparameters from table \ref{tab:hpo_best} to train the model
-on the full training set. We compute the FID and KID (computed ) metrics, comparing 5,000 generated samples to 5,000 real samples
+on the full training set. We compute the FID and KID (the latter computed on 50 subsets of size 100, as required), comparing 5000 generated samples to 5000 real samples
+from the test set evaluating across 10 different random seeds to account for variability in generation and statistical robustness. 
 
 
 \section{Results and Interpretation}
