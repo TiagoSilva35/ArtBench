@@ -33,8 +33,6 @@
 
 \subsubsection{DCGAN}
 
-\subsubsection{StyleGAN}
-
 \subsubsection{Diffusion Models}
 
 \subsection{Implementation Details and Reproducibility}
@@ -61,8 +59,7 @@ reported in Table~\ref{tab:hpo_best}. We used validation losses as surrogates du
 and high-variance at the per-trial scale: they require generating large sample sets and repeated feature extraction. In contrast, validation losses are 
 available at each epoch and exhibit lower variance which improves sample efficiency under limited computational resources. We note, however, that GAN losses are far from beeing perfect proxies 
 for perceptual sample quality; therefore, we use this objective only for hyperparameter selection during tuning and rely on qualitative inspection 
-for the selected final parameters. Aditionally, there was no tuning on the StyleGan due to its high computational cost, and we used the default hyperparameters 
-from the original implementation.
+for the selected final parameters.
 \begin{table}[H]
     \centering
     \caption{Hyperparameter search spaces used in Bayesian optimization.}
@@ -104,29 +101,48 @@ from the original implementation.
     \centering
     \caption{Best configurations obtained.}
     \label{tab:hpo_best}
-    \begin{tabular}{lcc}
+    \begin{tabular}{p{0.28\textwidth}cccc}
         \toprule
-        \textbf{Parameter} & \textbf{VAE} & \textbf{DCGAN} \\
+        \textbf{Parameter} & \textbf{VAE} & \textbf{DCGAN} & \textbf{PixelUnet} & \textbf{LatentDenoiser}\\
         \midrule
-        Best objective value & 0.02658 & 1.68158 \\
-        Learning rate & 0.0005317 & 0.0001261 \\
-        Batch size & 32 & 32 \\
-        Latent dimension & 32 & 256 \\
-        Base channels / feature maps & 64 & 64 \\
-        $\beta$ (VAE) & $1.14 \times 10^{-6}$ & -- \\
-        $\beta_1$ (Adam, DCGAN) & -- & 0.4813 \\
-        real\_label (DCGAN) & -- & 0.9836 \\
+        Best objective value & 0.02658 & 1.68158 & 0.0358 & 0.2598 \\
+        Learning rate & 0.0005317 & 0.0001261 & 0.0004748 & 0.0001769\\
+        Batch size & 32 & 32 & 16 & 32 \\
+        Latent dimension & 32 & 256 & 64 & 64 \\
+        Base channels / feature maps & 64 & 64 & 64 & 64 \\
+        $\beta$ (VAE) & $1.14 \times 10^{-6}$ & -- & -- & -- \\
+        $\beta_1$ (Adam, DCGAN) & -- & 0.4813 & -- & -- \\
+        real\_label (DCGAN) & -- & 0.9836 & -- & -- \\
+        num\_timesteps (diffusion) & -- & -- & 1000 & 1000 \\
+        num\_res\_blocks (LatentDenoiser) & -- & -- & -- & 4 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Across the selected configurations (Table~\ref{tab:hpo_best}), both the VAE and DCGAN favored a relatively small batch size ($32$), suggesting that larger batches did not provide a validation advantage under our training budget. For the VAE, the best trial used a low-dimensional latent ($32$) together with higher base channel capacity ($64$) and a very small KL weight ($\beta \approx 10^{-6}$), indicating that stronger regularization was detrimental to reconstruction on this dataset. For DCGAN, the best trial used $z\!=\!256$, feature maps $64$, a comparatively low learning rate ($1.26\times 10^{-4}$), moderate Adam $\beta_1$ (0.48), and mild one-sided label smoothing (real\_label $\approx 0.98$), consistent with stabilizing discriminator training.
 
 \subsection{Evaluation Protocol}
-After all sweeps are completed, we use the hyperparameters from table \ref{tab:hpo_best} to train the model
-on the full training set. We compute the FID and KID (the latter computed on 50 subsets of size 100, as required), comparing 5000 generated samples to 5000 real samples
-from the test set evaluating across 10 different random seeds to account for variability in generation and statistical robustness. 
-
+Across the selected configurations (Table~\ref{tab:hpo_best}), 
+the optimization process consistently favored smaller batch sizes. 
+This aligns with the well-documented generalization gap observed in 
+large-batch training~\cite{keskar}. Specifically, the inherent noise 
+in small-batch stochastic gradients serves as a form of implicit 
+regularization, facilitating the escape from sharp local minima and 
+leading the model toward flatter, more robust regions of the loss 
+landscape. Regarding the learning rates, the observed values
+are relatively low, consistent with the need for stable convergence and
+stability during training, especially for GANs which are known to be sensitive to hyperparameter settings.
+Latent dimensions reveal important differences across model families: the VAE favored a much smaller 
+latent space (32) compared to the DCGAN (256), which may reflect the different in the 
+model's architectures: GANs don't pay an explicity penalty (KL divergence)
+for using larger latent spaces, while VAEs are encouraged to find compact representations.
+A larger latent space may encourage more diverse samples as long as the generator
+actually uses it. For the VAE, the optimal $\beta$ value is very low, 
+indicating that the model prioritizes reconstruction fidelity over latent space regularization.
+For the DCGAN, the optimal $\beta_1$ value is around 0.48, which is close 
+to the commonly used value of 0.5~\cite{dcgan}, suggesting a balance between stability and convergence speed. 
+The real\_label parameter being close to 1 (0.9836) indicates that the discriminator 
+benefits from a small anti-overconfidence margin, which can help prevent it from becoming too confident 
+and overpowering the generator during training without weakening the learning signal too much.
 
 \section{Results and Interpretation}
 
@@ -137,11 +153,8 @@ from the test set evaluating across 10 different random seeds to account for var
 \section*{Use of External Resources and AI Tools}
 This project utilized ArtBench-10 (Kaggle). Gemini assisted in LaTeX formatting and analysis verification.
 
-\begin{thebibliography}{10}
-\bibitem{artbench} Liao, P. et al. (2022). The ArtBench Dataset. arXiv:2206.11404.
-\bibitem{vae} Kingma, D. P. et al. (2013). Auto-Encoding Variational Bayes. arXiv:1312.6114.
-\bibitem{dcgan} Radford, A. et al. (2015). Unsupervised Representation Learning with DCGANs. ICLR 2016.
-\bibitem{fid} Heusel, M. et al. (2017). GANs Trained by a Two Time-Scale Update Rule. NIPS 2017.
-\end{thebibliography}
+\nocite{artbench,vae,dcgan,fid,keskar}
+\bibliographystyle{splncs04}
+\bibliography{main}
 
 \end{document}

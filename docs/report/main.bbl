@@ -1,0 +1,21 @@
+\begin{thebibliography}{1}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+\providecommand{\doi}[1]{https://doi.org/#1}
+
+\bibitem{fid}
+Heusel, M., Ramsauer, H., Unterthiner, T., Nessler, B., Hochreiter, S.: Gans trained by a two time-scale update rule converge to a local nash equilibrium. In: Advances in Neural Information Processing Systems (NeurIPS). pp. 6626--6637 (2017)
+
+\bibitem{keskar}
+Keskar, N.S., Mudigere, D., Nocedal, J., Smelyanskiy, M., Tang, P.T.P.: On large-batch training for deep learning: Generalization gap and sharp minima. CoRR  \textbf{abs/1609.04836} (2016), \url{http://arxiv.org/abs/1609.04836}
+
+\bibitem{vae}
+Kingma, D.P., Welling, M.: Auto-encoding variational bayes. arXiv preprint arXiv:1312.6114  (2013), \url{https://arxiv.org/abs/1312.6114}
+
+\bibitem{artbench}
+Liao, P., Cheng, X., Sridhar, K., Li, Y., Phillip, I., Torralba, A.: The artbench dataset for fine-grained artistic style understanding and generation. arXiv preprint arXiv:2206.11404  (2022), \url{https://arxiv.org/abs/2206.11404}
+
+\bibitem{dcgan}
+Radford, A., Metz, L., Chintala, S.: Unsupervised representation learning with deep convolutional generative adversarial networks. In: International Conference on Learning Representations (ICLR) (2016), \url{https://arxiv.org/abs/1511.06434}
+
+\end{thebibliography}
