@@ -97,29 +97,6 @@ for the selected final parameters.
 
 
 
-\begin{table}[H]
-    \centering
-    \caption{Best configurations obtained.}
-    \label{tab:hpo_best}
-    \begin{tabular}{p{0.28\textwidth}cccc}
-        \toprule
-        \textbf{Parameter} & \textbf{VAE} & \textbf{DCGAN} & \textbf{PixelUnet} & \textbf{LatentDenoiser}\\
-        \midrule
-        Best objective value & 0.02658 & 1.68158 & 0.0358 & 0.2598 \\
-        Learning rate & 0.0005317 & 0.0001261 & 0.0004748 & 0.0001769\\
-        Batch size & 32 & 32 & 16 & 32 \\
-        Latent dimension & 32 & 256 & 64 & 64 \\
-        Base channels / feature maps & 64 & 64 & 64 & 64 \\
-        $\beta$ (VAE) & $1.14 \times 10^{-6}$ & -- & -- & -- \\
-        $\beta_1$ (Adam, DCGAN) & -- & 0.4813 & -- & -- \\
-        real\_label (DCGAN) & -- & 0.9836 & -- & -- \\
-        num\_timesteps (diffusion) & -- & -- & 1000 & 1000 \\
-        num\_res\_blocks (LatentDenoiser) & -- & -- & -- & 4 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-
 \subsection{Evaluation Protocol}
 Across the selected configurations (Table~\ref{tab:hpo_best}), 
 the optimization process consistently favored smaller batch sizes. 
@@ -144,9 +121,36 @@ The real\_label parameter being close to 1 (0.9836) indicates that the discrimin
 benefits from a small anti-overconfidence margin, which can help prevent it from becoming too confident 
 and overpowering the generator during training without weakening the learning signal too much.
 
+
+\begin{table}[H]
+    \centering
+    \caption{Best configurations obtained.}
+    \label{tab:hpo_best}
+    \begin{tabular}{p{0.28\textwidth}cccc}
+        \toprule
+        \textbf{Parameter} & \textbf{VAE} & \textbf{DCGAN} & \textbf{PixelUnet} & \textbf{LatentDenoiser}\\
+        \midrule
+        Best objective value & 0.02658 & 1.68158 & 0.0358 & 0.2598 \\
+        Learning rate & 0.0005317 & 0.0001261 & 0.0004748 & 0.0001769\\
+        Batch size & 32 & 32 & 16 & 32 \\
+        Latent dimension & 32 & 256 & 64 & 64 \\
+        Base channels / feature maps & 64 & 64 & 64 & 64 \\
+        $\beta$ (VAE) & $1.14 \times 10^{-6}$ & -- & -- & -- \\
+        $\beta_1$ (Adam, DCGAN) & -- & 0.4813 & -- & -- \\
+        real\_label (DCGAN) & -- & 0.9836 & -- & -- \\
+        num\_timesteps (diffusion) & -- & -- & 1000 & 1000 \\
+        num\_res\_blocks (LatentDenoiser) & -- & -- & -- & 4 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 \section{Results and Interpretation}
 
-Table~\ref{tab:summary_results} summarizes the quantitative evaluation across model families using 5{,}000 generated samples and 10 random seeds per model. We report mean $\pm$ standard deviation across seeds. Objective arrows indicate whether lower ($\downarrow$) or higher ($\uparrow$) values are preferred. The best value in each metric is highlighted in bold.
+\subsection{Quantitative Results}
+Table~\ref{tab:summary_results} summarizes the quantitative evaluation across model families using 5{,}000 generated 
+samples and 10 random seeds per model. We report mean $\pm$ standard deviation across seeds. 
+Arrows indicate whether lower ($\downarrow$) or higher ($\uparrow$) values are preferred. 
+The best value in each metric is highlighted in bold.
 
 \begin{table}[H]
     \centering
@@ -154,15 +158,41 @@ Table~\ref{tab:summary_results} summarizes the quantitative evaluation across mo
     \label{tab:summary_results}
     \begin{tabular}{lcccc}
         \toprule
-        \textbf{Model} & \textbf{FID $\downarrow$} & \textbf{KID $\downarrow$} & \textbf{Precision $\uparrow$} & \textbf{Recall $\uparrow$} \\
+        \textbf{Model} & \textbf{FID $\downarrow$} & \textbf{KID $\downarrow$} & \textbf{Precision $\uparrow$} & \\
         \midrule
-        VAE & 134.228 $\pm$ 0.531 & 0.13136 $\pm$ 0.00109 & 0.80548 $\pm$ 0.00671 & 0.00000 $\pm$ 0.00000 \\
-        DCGAN & \textbf{101.248 $\pm$ 0.864} & \textbf{0.07664 $\pm$ 0.00153} & 0.86400 $\pm$ 0.00489 & \textbf{0.05386 $\pm$ 0.00329} \\
-        PixelUNet & 116.933 $\pm$ 0.708 & 0.09972 $\pm$ 0.00107 & \textbf{0.90804 $\pm$ 0.00512} & 0.03980 $\pm$ 0.00275 \\
-        LatentDenoiser & 119.271 $\pm$ 0.416 & 0.10068 $\pm$ 0.00122 & 0.78472 $\pm$ 0.00466 & 0.00000 $\pm$ 0.00000 \\
+        VAE & 134.228 $\pm$ 0.531 & 0.13136 $\pm$ 0.00109 & 0.80548 $\pm$ 0.00671\\
+        DCGAN & \textbf{101.248 $\pm$ 0.864} & \textbf{0.07664 $\pm$ 0.00153} & 0.86400 $\pm$ 0.00489 \\
+        PixelUNet & 116.933 $\pm$ 0.708 & 0.09972 $\pm$ 0.00107 & \textbf{0.90804 $\pm$ 0.00512} \\
+        LatentDenoiser & 119.271 $\pm$ 0.416 & 0.10068 $\pm$ 0.00122 & 0.78472 $\pm$ 0.00466 \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+Overall, DCGAN achieves the best performence in terms of 
+global distributional alignment obtaining the lowest FID (101.248 $\pm$ 0.864)
+and KID (0.07664 $\pm$ 0.00153) scores. This suggests that the DCGAN is more effective at 
+capturing the overall data distribution compared to the other models. The VAE, on the 
+other hand, has the worst performance in terms of FID and KID, 
+which is consistent with the known limitations of VAEs in generating overly
+smooth reconstructions due to the variational objective, which
+can lead to blurry samples and less realistic outputs.
+PixelUNet achieves the highest precision (0.90804 $\pm$ 0.00512), indicating 
+that it generates a higher proportion of samples that are close to the 
+real data manifold. However, the higher FID and KID values
+compared to DCGAN suggest that the improvement in sample realism 
+does not necessarily translate to better overall distributional alignment.
+They, therefore, generate more realistic samples but with less diversity.
+The LatentDenoiser achieves intermediate FID and KID values but the 
+lowest precision among the evaluated models. This suggests that while 
+its generated distribution is moderately aligned with the target dataset 
+at a global level, a larger fraction of its individual samples fall outside 
+the real data manifold compared to the other architectures. Such behavior may 
+indicate incomplete convergence or reduced stability in the denoising process 
+during sampling. In addition, the small standard deviations across seeds for all 
+models suggest that the results are consistent and not heavily influenced by
+random initialization or stochastic training dynamics which is a positive sign of the 
+robustness of the training process.
+
 
 \section{Conclusion}
 

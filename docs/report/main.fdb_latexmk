@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex main"] 1776509696.39335 "main.aux" "main.bbl" "main" 1776509697.22469 0
+["bibtex main"] 1776513742.2875 "main.aux" "main.bbl" "main" 1776513742.71073 0
   "./main.bib" 1776507920.12431 2481 fab5df8af20e38f8b333ebddd3671eb3 ""
   "./splncs04.bst" 1776154541.31456 32145 e60166855197bacbabbb60413b520282 ""
-  "main.aux" 1776509696.98349 3380 b090bd2f35cf2e298d4ddba7fed6f1a0 "pdflatex"
+  "main.aux" 1776513742.58666 3655 300b5c8fa6c18e84a407c30f42a5081f "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1776509696.48035 "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" "main.pdf" "main" 1776509697.22487 0
-  "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" 1776509695.36654 6925 6371c50e7ac3c387de8cf94a21a32062 ""
+["pdflatex"] 1776513742.33039 "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" "main.pdf" "main" 1776513742.71085 0
+  "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" 1776513741.67254 9755 3ecd090ea476defb65a8b7d495f775af ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1772380719 2971 def0b6c1f0b107b3b936def894055589 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/map/fontname/texfonts.map" 1772380719 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map" 1772380719 5541360 f183aac233c4cd1e5ef882fcbe8e7096 ""
@@ -35,6 +35,7 @@
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb" 1772380719 32734 69e00a6b65cedb993666e42eedb3d48f ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb" 1772380719 32762 224316ccc9ad3ca0423a14971cfa7fc1 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb" 1772380719 33993 9b89b85fd2d9df0482bd47194d1d3bf3 ""
+  "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb" 1772380719 32569 5e5ddc8df908dea60932f3c484a54c0d ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb" 1772380719 32587 1788b0c1c5b39540c96f5e42ccd6dae8 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb" 1772380719 32442 c975af247b6702f7ca0c299af3616b80 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/type1/public/cm-super/sfbx0900.pfb" 1772380719 143961 201304b65f97bc643fbd0bcf0685d1fe ""
@@ -96,10 +97,10 @@
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/web2c/texmf.cnf" 1772380719 43633 14bbc273cebd985e64ab1a698333eaf9 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-var/web2c/pdftex/pdflatex.fmt" 1772380719 3636956 5168b884cb430e6a6336cfea08fa659a ""
   "llncs.cls" 1776154541.31438 43401 6bb5881f543faf590aa3e2c129be0e96 ""
-  "main.aux" 1776509696.98349 3380 b090bd2f35cf2e298d4ddba7fed6f1a0 "pdflatex"
-  "main.bbl" 1776509696.47811 1334 971c77d0278191965b371ad02e2ef92a "bibtex main"
-  "main.out" 1776509696.98429 506 db37d499795d4f98382b565ff469e7b5 "pdflatex"
-  "main.tex" 1776509695.36654 6925 6371c50e7ac3c387de8cf94a21a32062 ""
+  "main.aux" 1776513742.58666 3655 300b5c8fa6c18e84a407c30f42a5081f "pdflatex"
+  "main.bbl" 1776513742.3291 1334 971c77d0278191965b371ad02e2ef92a "bibtex main"
+  "main.out" 1776513742.58705 506 db37d499795d4f98382b565ff469e7b5 "pdflatex"
+  "main.tex" 1776513741.67254 9755 3ecd090ea476defb65a8b7d495f775af ""
   (generated)
   "main.aux"
   "main.log"
