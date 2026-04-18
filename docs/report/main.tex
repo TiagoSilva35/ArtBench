@@ -146,7 +146,23 @@ and overpowering the generator during training without weakening the learning si
 
 \section{Results and Interpretation}
 
-\subsection{Ablation Studies and Discussion}
+Table~\ref{tab:summary_results} summarizes the quantitative evaluation across model families using 5{,}000 generated samples and 10 random seeds per model. We report mean $\pm$ standard deviation across seeds. Objective arrows indicate whether lower ($\downarrow$) or higher ($\uparrow$) values are preferred. The best value in each metric is highlighted in bold.
+
+\begin{table}[H]
+    \centering
+    \caption{Summary of quantitative results (mean $\pm$ std across seeds).}
+    \label{tab:summary_results}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{FID $\downarrow$} & \textbf{KID $\downarrow$} & \textbf{Precision $\uparrow$} & \textbf{Recall $\uparrow$} \\
+        \midrule
+        VAE & 134.228 $\pm$ 0.531 & 0.13136 $\pm$ 0.00109 & 0.80548 $\pm$ 0.00671 & 0.00000 $\pm$ 0.00000 \\
+        DCGAN & \textbf{101.248 $\pm$ 0.864} & \textbf{0.07664 $\pm$ 0.00153} & 0.86400 $\pm$ 0.00489 & \textbf{0.05386 $\pm$ 0.00329} \\
+        PixelUNet & 116.933 $\pm$ 0.708 & 0.09972 $\pm$ 0.00107 & \textbf{0.90804 $\pm$ 0.00512} & 0.03980 $\pm$ 0.00275 \\
+        LatentDenoiser & 119.271 $\pm$ 0.416 & 0.10068 $\pm$ 0.00122 & 0.78472 $\pm$ 0.00466 & 0.00000 $\pm$ 0.00000 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 \section{Conclusion}
 
