@@ -10,8 +10,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from prdc import compute_prdc
 from torch.utils.data import DataLoader, Subset
+from torchvision.models import Inception_V3_Weights, inception_v3
 from torchvision.utils import make_grid, save_image
 
 # Ensure project root is importable when running: python src\evaluate.py
@@ -36,7 +39,6 @@ from src.helpers.data_utils import build_image_transform, unpack_images
 from src.helpers.utils import get_device
 from src.models.DCGAN import DCGAN
 from src.models.DenoiserNetworks import LatentDenoiseNetwork, PixelUNet
-from src.models.StyleGAN import StyleGAN
 from src.models.vae import VAE
 
 
@@ -82,14 +84,46 @@ def export_images_to_folder(images: torch.Tensor, out_dir: Path, start_idx: int 
         save_image(vis[i], out_dir / f"img_{start_idx + i:06d}.png")
 
 
+_PRDC_INCEPTION: nn.Module | None = None
+
+
+def get_prdc_inception(device: torch.device) -> nn.Module:
+    global _PRDC_INCEPTION
+    if _PRDC_INCEPTION is None:
+        model = inception_v3(weights=Inception_V3_Weights.IMAGENET1K_V1, aux_logits=False)
+        model.fc = nn.Identity()  # type: ignore[assignment]
+        model.eval()
+        _PRDC_INCEPTION = model
+    return _PRDC_INCEPTION.to(device)
+
+
+@torch.no_grad()
+def extract_inception_features(images: torch.Tensor, device: torch.device, batch_size: int) -> np.ndarray:
+    model = get_prdc_inception(device)
+    mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)
+    features: list[np.ndarray] = []
+
+    for i in range(0, images.size(0), batch_size):
+        batch = images[i : i + batch_size].to(device=device, dtype=torch.float32)
+        batch = ((batch.clamp(-1.0, 1.0) + 1.0) * 0.5)
+        batch = F.interpolate(batch, size=(299, 299), mode="bilinear", align_corners=False)
+        batch = (batch - mean) / std
+        feats = model(batch)
+        features.append(feats.detach().cpu().numpy())
+
+    return np.concatenate(features, axis=0)
+
+
 def compute_prdc_metrics(
     real_images: torch.Tensor,
     generated_images: torch.Tensor,
     nearest_k: int,
+    feature_device: torch.device,
+    feature_batch_size: int,
 ) -> tuple[float, float, float, float]:
-    # PRDC expects 2D feature arrays; here we use flattened image features.
-    real_features = real_images.detach().cpu().float().reshape(real_images.size(0), -1).numpy()
-    fake_features = generated_images.detach().cpu().float().reshape(generated_images.size(0), -1).numpy()
+    real_features = extract_inception_features(real_images, device=feature_device, batch_size=feature_batch_size)
+    fake_features = extract_inception_features(generated_images, device=feature_device, batch_size=feature_batch_size)
     metrics = compute_prdc(real_features=real_features, fake_features=fake_features, nearest_k=nearest_k)
     return (
         float(metrics["precision"]),
@@ -435,6 +469,8 @@ def run_single_eval(
         real_images=real_images,
         generated_images=generated_prdc,
         nearest_k=prdc_nearest_k,
+        feature_device=metrics_device,
+        feature_batch_size=metric_batch_size,
     )
 
     generated_vis = torch.cat(generated_vis_chunks, dim=0) if generated_vis_chunks else torch.empty(0, 3, IMAGE_SIZE, IMAGE_SIZE)
