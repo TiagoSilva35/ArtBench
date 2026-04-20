@@ -28,15 +28,38 @@
 
 \section{Methodological Framework}
 
-\subsection{Data Processing Pipeline}
-
-\subsubsection{VAE}
-
-\subsubsection{DCGAN}
-
-\subsubsection{Diffusion Models}
-
 \subsection{Implementation Details and Reproducibility}
+
+In order to guarantee complete reproducibiblity, the seed for all random functions used during training was set to 42.
+All train functions followed the same structure:
+\begin{itemize}
+    \item Setup of models, directories and variables;
+    \item Main training loop with 50 epochs, with checkpoints and samples every 10 epochs.
+    \item Saving of the final model
+\end{itemize}
+
+\subsubsection{Latent Denoise Network}
+
+The Latent Denoise Network model's architecture was the same as the one in the PL classes.
+For the diffusion process, the DDPM scheduler used was the GaussianDiffusion model.
+For the time steps embeddings, a Sinusoidal Position Embedding, with another 3 layers of Linear, SiLu and Linear transformations, respectivelly, were used.
+For the reverse diffusion step, ResnetBlocks in sequence were used.
+For the encoding and decoding of samples to and from the latent space, the VAE previously trained was used.
+
+The only changes made to the provided code were to the number of latent channels, which had to be the same as the trained VAE latent channels', 
+and the implementation of the sample, train step and image generation functions inside the class of the model.
+These sample and train step functions were implemented just like the respective PL class demanded.
+
+\subsubsection{Pixel UNet}
+
+The Pixel UNet model's architecture, just like the previous model, was the same as the one in the Diffusion models's PL class.
+The diffusion process and the time steps embeddings were the same as the ones in the previous model.
+The only differences were in the reverse diffusion step, where 6 ResnetBlocks were used (2 in downscaling, 2 keeping the resolution and 2 in upscaling), 
+and the lack of a latent space.
+
+Similarly to the Latent Denoise Network, the main changes to the code were with the implementation of the sample, train step and image generation inside the class of the model.
+These functions are very similar to the ones implemented with the previous model, only with slight adaptations.
+The only other difference from the PL class's code was the change in the input channels, which became 3, due to the dataset images being represented in the RGB space.
 
 \subsection{Theoretical Rationale for Hyperparameter Choices}
 The choice of which hyperparameters to tune and the search space design follows 4 main principles:

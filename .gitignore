@@ -12,3 +12,6 @@
 /LatentDenoiseNetwork_results/
 /evaluation_results/
 *.pyc
+*/report/*
+!*/report/
+!*/report/main.tex
