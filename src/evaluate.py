@@ -10,7 +10,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch_fidelity
+from prdc import compute_prdc
 from torch.utils.data import DataLoader, Subset
 from torchvision.utils import make_grid, save_image
 
@@ -82,26 +82,26 @@ def export_images_to_folder(images: torch.Tensor, out_dir: Path, start_idx: int 
         save_image(vis[i], out_dir / f"img_{start_idx + i:06d}.png")
 
 
-def compute_torch_fidelity_prdc(generated_dir: Path, real_dir: Path) -> tuple[float, float, float, float]:
-    tf_metrics = torch_fidelity.calculate_metrics(
-        input1=str(generated_dir),
-        input2=str(real_dir),
-        cuda=torch.cuda.is_available(),
-        isc=False,
-        fid=False,
-        kid=False,
-        prc=True,
+def compute_prdc_metrics(
+    real_images: torch.Tensor,
+    generated_images: torch.Tensor,
+    nearest_k: int,
+) -> tuple[float, float, float, float]:
+    # PRDC expects 2D feature arrays; here we use flattened image features.
+    real_features = real_images.detach().cpu().float().reshape(real_images.size(0), -1).numpy()
+    fake_features = generated_images.detach().cpu().float().reshape(generated_images.size(0), -1).numpy()
+    metrics = compute_prdc(real_features=real_features, fake_features=fake_features, nearest_k=nearest_k)
+    return (
+        float(metrics["precision"]),
+        float(metrics["recall"]),
+        float(metrics["density"]),
+        float(metrics["coverage"]),
     )
-    precision = float(tf_metrics["precision"])
-    recall = float(tf_metrics["recall"])
-    density = float(tf_metrics.get("density", float("nan")))
-    coverage = float(tf_metrics.get("coverage", float("nan")))
-    return precision, recall, density, coverage
 
 
 def plot_coverage_vs_quality(results: dict[str, tuple[float, float]], output_path: Path) -> None:
     """
-    results: {model_name: (quality, coverage)} where quality=precision and coverage=recall.
+    results: {model_name: (quality, coverage)} where quality=precision.
     """
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -139,7 +139,7 @@ def plot_coverage_vs_quality(results: dict[str, tuple[float, float]], output_pat
             fontsize=10,
         )
 
-    ax.set_xlabel("Coverage (Recall)", fontsize=12)
+    ax.set_xlabel("Coverage", fontsize=12)
     ax.set_ylabel("Quality (Precision)", fontsize=12)
     ax.set_xlim(0, 1.05)
     ax.set_ylim(0, 1.05)
@@ -295,6 +295,7 @@ def run_single_eval(
     metrics_device: torch.device,
     output_dir: Path,
     real_images_dir: Path,
+    prdc_nearest_k: int,
     vae_model: VAE | None = None,
 ) -> tuple[float, float, float, float, float, float, float]:
     set_global_seed(seed)
@@ -303,6 +304,7 @@ def run_single_eval(
     kid_metric = build_kid_metric(metrics_device)
     n_vis = 64
     generated_vis_chunks: list[torch.Tensor] = []
+    generated_prdc_chunks: list[torch.Tensor] = []
     run_dir = output_dir / model_key / f"seed_{seed}"
     run_dir.mkdir(parents=True, exist_ok=True)
     generated_images_dir = run_dir / "generated_images"
@@ -333,6 +335,7 @@ def run_single_eval(
             generated = sample_vae(vae_model, num_samples=n, device=device, batch_size=n)
             update_metrics_with_generated_batch(generated, processed)
             export_images_to_folder(generated, generated_images_dir, start_idx=processed)
+            generated_prdc_chunks.append(generated.detach().cpu())
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
@@ -343,6 +346,7 @@ def run_single_eval(
             generated = sample_dcgan(dcgan, num_samples=n, device=device, batch_size=n)
             update_metrics_with_generated_batch(generated, processed)
             export_images_to_folder(generated, generated_images_dir, start_idx=processed)
+            generated_prdc_chunks.append(generated.detach().cpu())
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
@@ -354,6 +358,7 @@ def run_single_eval(
             generated = sample_stylegan(stylegan, num_samples=n, device=device, batch_size=n)
             update_metrics_with_generated_batch(generated, processed)
             export_images_to_folder(generated, generated_images_dir, start_idx=processed)
+            generated_prdc_chunks.append(generated.detach().cpu())
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
@@ -378,6 +383,7 @@ def run_single_eval(
             )
             update_metrics_with_generated_batch(generated, processed)
             export_images_to_folder(generated, generated_images_dir, start_idx=processed)
+            generated_prdc_chunks.append(generated.detach().cpu())
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
@@ -407,6 +413,7 @@ def run_single_eval(
             )
             update_metrics_with_generated_batch(generated, processed)
             export_images_to_folder(generated, generated_images_dir, start_idx=processed)
+            generated_prdc_chunks.append(generated.detach().cpu())
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
@@ -423,13 +430,19 @@ def run_single_eval(
     kid_std_value = float(kid_std.item())
     kid_metric.reset()
 
-    precision, recall, density, coverage = compute_torch_fidelity_prdc(generated_images_dir, real_images_dir)
+    generated_prdc = torch.cat(generated_prdc_chunks, dim=0)
+    precision, recall, density, coverage = compute_prdc_metrics(
+        real_images=real_images,
+        generated_images=generated_prdc,
+        nearest_k=prdc_nearest_k,
+    )
 
     generated_vis = torch.cat(generated_vis_chunks, dim=0) if generated_vis_chunks else torch.empty(0, 3, IMAGE_SIZE, IMAGE_SIZE)
     save_qualitative_grid(generated_vis, run_dir / "generated_grid.png")
     save_qualitative_grid(real_images, run_dir / "real_grid.png")
 
     del generated_vis
+    del generated_prdc
     if device.type == "cuda":
         torch.cuda.empty_cache()
 
@@ -598,6 +611,12 @@ def main() -> None:
         default="cpu",
         help="Device used by FID/KID computation. Use cpu to avoid CUDA OOM.",
     )
+    parser.add_argument(
+        "--prdc-nearest-k",
+        type=int,
+        default=5,
+        help="Nearest-neighbor k used by PRDC metrics (quality/coverage).",
+    )
     parser.add_argument("--output-dir", type=Path, default=Path("evaluation_results"), help="Output directory.")
     args = parser.parse_args()
 
@@ -662,6 +681,7 @@ def main() -> None:
                 metrics_device=metrics_device,
                 output_dir=args.output_dir,
                 real_images_dir=real_images_dir,
+                prdc_nearest_k=args.prdc_nearest_k,
                 vae_model=vae_model,
             )
             fid_values.append(fid)
@@ -766,7 +786,7 @@ def main() -> None:
         writer.writerows(summary_rows)
 
     coverage_vs_quality: dict[str, tuple[float, float]] = {
-        str(row["model"]): (float(row["precision_mean"]), float(row["recall_mean"])) for row in summary_rows
+        str(row["model"]): (float(row["precision_mean"]), float(row["coverage_mean"])) for row in summary_rows
     }
     plot_path = args.output_dir / "quality_vs_coverage.png"
     plot_coverage_vs_quality(coverage_vs_quality, plot_path)
