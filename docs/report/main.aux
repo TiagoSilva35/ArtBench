@@ -2,34 +2,32 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{vae}
 \@writefile{toc}{\contentsline {title}{ArtBench-10 Generative Modeling: A Comparative Study of VAE, GAN, and Diffusion Models}{1}{chapter.1}\protected@file@percent }
 \@writefile{toc}{\authcount {2}}
 \@writefile{toc}{\contentsline {author}{Tiago Silva \and João Coelho}{1}{chapter.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Problem Formulation}{1}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}Methodological Framework}{1}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Data Processing Pipeline}{1}{subsection.3.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{VAE}{1}{section*.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{DCGAN}{1}{section*.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{Diffusion Models}{1}{section*.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Implementation Details and Reproducibility}{1}{subsection.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Theoretical Rationale for Hyperparameter Choices}{1}{subsection.3.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{Variational Autoencoders (VAE)}{1}{section*.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{Generative Adversarial Networks (GAN)}{2}{section*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{Diffusion Models}{2}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Experimental Design}{2}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Hyperparameter Optimization Strategy}{2}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Implementation Details and Reproducibility}{1}{subsection.3.1}\protected@file@percent }
+\citation{dcgan}
+\@writefile{toc}{\contentsline {subsubsection}{Variational Autoencoder}{2}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Generative Adversarial Network}{2}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Latent Denoise Network}{2}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Pixel UNet}{2}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Theoretical Rationale for Hyperparameter Choices}{3}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Variational Autoencoders (VAE)}{3}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Generative Adversarial Networks (GAN)}{3}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{Diffusion Models}{3}{section*.8}\protected@file@percent }
 \citation{keskar}
 \citation{dcgan}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Hyperparameter search spaces used in Bayesian optimization.}}{3}{table.1}\protected@file@percent }
-\newlabel{tab:hpo_spaces}{{1}{3}{Hyperparameter search spaces used in Bayesian optimization}{table.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Evaluation Protocol}{3}{subsection.4.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Best configurations obtained.}}{4}{table.2}\protected@file@percent }
-\newlabel{tab:hpo_best}{{2}{4}{Best configurations obtained}{table.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Results and Interpretation}{4}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Quantitative Results}{4}{subsection.5.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Summary of quantitative results (mean $\pm $ std across seeds).}}{4}{table.3}\protected@file@percent }
-\newlabel{tab:summary_results}{{3}{4}{Summary of quantitative results (mean $\pm $ std across seeds)}{table.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experimental Design}{4}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Hyperparameter Optimization Strategy}{4}{subsection.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Hyperparameter search spaces used in Bayesian optimization.}}{4}{table.1}\protected@file@percent }
+\newlabel{tab:hpo_spaces}{{1}{4}{Hyperparameter search spaces used in Bayesian optimization}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Evaluation Protocol}{5}{subsection.4.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Best configurations obtained.}}{5}{table.2}\protected@file@percent }
+\newlabel{tab:hpo_best}{{2}{5}{Best configurations obtained}{table.2}{}}
 \citation{artbench}
 \citation{vae}
 \citation{dcgan}
@@ -37,10 +35,14 @@
 \citation{keskar}
 \bibstyle{splncs04}
 \bibdata{main}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Results and Interpretation}{6}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Quantitative Results}{6}{subsection.5.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Summary of quantitative results (mean $\pm $ std across seeds).}}{6}{table.3}\protected@file@percent }
+\newlabel{tab:summary_results}{{3}{6}{Summary of quantitative results (mean $\pm $ std across seeds)}{table.3}{}}
 \bibcite{fid}{1}
 \bibcite{keskar}{2}
 \bibcite{vae}{3}
 \bibcite{artbench}{4}
 \bibcite{dcgan}{5}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{5}{section.6}\protected@file@percent }
-\gdef \@abspage@last{5}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{7}{section.6}\protected@file@percent }
+\gdef \@abspage@last{7}

@@ -30,13 +30,51 @@
 
 \subsection{Implementation Details and Reproducibility}
 
-In order to guarantee complete reproducibiblity, the seed for all random functions used during training was set to 42.
-All train functions followed the same structure:
+To ensure reproducibility, we adopted a deterministic seeding policy across the pipeline. 
+In the base training workflow, all stochastic operations were initialized with seed 42. 
+During hyperparameter optimization, each Optuna trial used a deterministic trial-specific 
+seed ($42 + \text{trial\_id}$), and the train/validation split was generated with a fixed seed. 
+Final evaluation was conducted across 10 distinct seeds, followed by reporting mean and standard deviation
+of metrics. During the experimentation phase, a 20\%  subset (10,000 images) was used for hyperparameter sweeps via Bayesian optimization. 
+Once optimal parameters werei  dentified, the final models were retrained on the 
+full 50,000-image training set.
+
+Regarding data preprocessing, all images were resized and center-cropped to $32\times32$, 
+converted to tensors, and normalized channel-wise with mean $(0.5, 0.5, 0.5)$ and 
+standard deviation $(0.5, 0.5, 0.5)$, resulting in inputs scaled to $[-1,1]$. 
+This normalization is important in our setting because it aligns the input scale with the 
+output range typically used by generative architectures (e.g, tanh outputs values in this range), improves optimization conditioning, 
+and contributes to more stable gradient dynamics, particularly for adversarial and 
+diffusion-based training (forward noising process is defined around 0 mean Gaussian noise).
+
+All training functions followed the same execution template:
 \begin{itemize}
-    \item Setup of models, directories and variables;
-    \item Main training loop with 50 epochs, with checkpoints and samples every 10 epochs.
-    \item Saving of the final model
+    \item Initialization of models, output directories, and training variables;
+    \item Main training loop for 50 epochs, with checkpoints and generated samples saved every 10 epochs;
+    \item Saving of the final model.
 \end{itemize}
+
+\subsubsection{Variational Autoencoder}
+For this model, we implemented a symmetric 4 layer convolutional design 
+(32, 16, 8, 4, 2) with leak Relu activations and batch normalization 
+after each convolutional layer. Following ~\cite{vae} we also
+implemented the reparameterization trick to allow backpropagation through the stochastic sampling of the latent space.
+
+\subsubsection{Generative Adversarial Network}
+For the adversarial baseline, we implemented a Deep Convolutional GAN (DCGAN) with a 
+transposed-convolution generator and a strided-convolution discriminator just as dicussed in
+the PL classes with some notations coming from~\cite{dcgan}. 
+The generator maps a latent vector $z$ to a $32\times32\times3$ image through 
+four upsampling blocks (ConvTranspose2d + BatchNorm + ReLU), followed by a \texttt{tanh} output layer. 
+The discriminator mirrors this design with four convolutional blocks using LeakyReLU activations and 
+BatchNorm in intermediate layers, ending in a sigmoid probability for binary real/fake classification.
+
+Training follows the standard alternating minimax procedure with binary cross-entropy loss: 
+the discriminator is first updated using real images and generated images, and then the 
+generator is updated to maximize the discriminator's probability of classifying generated 
+samples as real. We used Adam optimization (with tuned learning rate and $\beta_1$, and 
+fixed $\beta_2=0.999$), as well as one-sided label smoothing for real targets to reduce 
+discriminator overconfidence and improve early training stability. 
 
 \subsubsection{Latent Denoise Network}
 

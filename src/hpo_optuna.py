@@ -746,6 +746,9 @@ def train_final_model(model_key: str, best_params: dict, context: dict, args) ->
             epochs=args.final_epochs,
             save_dir="dcgan_results",
             checkpoint_freq=10,
+            lr=float(best_params.get("lr", 2e-4)),
+            beta1=float(best_params.get("beta1", 0.5)),
+            real_label=float(best_params.get("real_label", 0.9)),
         )
         return
 

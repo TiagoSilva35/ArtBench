@@ -12,4 +12,3 @@
 /LatentDenoiseNetwork_results/
 /evaluation_results/
 *.pyc
-/docs/report/*

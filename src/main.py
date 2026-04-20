@@ -187,6 +187,7 @@ def load_dcgan(
     epochs=50,
     lr=2e-4,
     beta1=0.5,
+    real_label=0.9,
 ):
     model.optimizer_G = torch.optim.Adam(model.generator.parameters(), lr=lr, betas=(beta1, 0.999))
     model.optimizer_D = torch.optim.Adam(model.discriminator.parameters(), lr=lr, betas=(beta1, 0.999))
@@ -221,7 +222,10 @@ def load_dcgan(
         val_loader=None,
         epochs=epochs,
         save_dir=save_dir,
-        checkpoint_freq=10
+        checkpoint_freq=10,
+        lr=lr,
+        beta1=beta1,
+        real_label=real_label,
     )
 
 
@@ -439,6 +443,7 @@ if __name__ == '__main__':
     dcgan_batch_size = int(hpo_dcgan_params.get('batch_size', BATCH_SIZE))
     dcgan_lr = float(hpo_dcgan_params.get('lr', 2e-4))
     dcgan_beta1 = float(hpo_dcgan_params.get('beta1', 0.5))
+    dcgan_real_label = float(hpo_dcgan_params.get('real_label', 0.9))
 
     stylegan_z_dim = int(hpo_stylegan_params.get('z_dim', 256))
     stylegan_w_dim = int(hpo_stylegan_params.get('w_dim', 256))
@@ -459,7 +464,7 @@ if __name__ == '__main__':
 
     DBG(f"HPO stage filter for params: {preferred_hpo_stage}")
     DBG(f"VAE config -> latent_dim={vae_latent_dim}, base_channels={vae_base_channels}, batch_size={vae_batch_size}, lr={vae_lr}, beta={vae_beta}")
-    DBG(f"DCGAN config -> latent_dim={dcgan_latent_dim}, feature_maps={dcgan_feature_maps}, batch_size={dcgan_batch_size}, lr={dcgan_lr}, beta1={dcgan_beta1}")
+    DBG(f"DCGAN config -> latent_dim={dcgan_latent_dim}, feature_maps={dcgan_feature_maps}, batch_size={dcgan_batch_size}, lr={dcgan_lr}, beta1={dcgan_beta1}, real_label={dcgan_real_label}")
     DBG(f"StyleGAN config -> z_dim={stylegan_z_dim}, w_dim={stylegan_w_dim}, mapping_layers={stylegan_mapping_layers}, batch_size={stylegan_batch_size}, lr={stylegan_lr}")
     DBG(f"PixelUNet config -> model_channels={pixel_model_channels}, batch_size={pixel_batch_size}, lr={pixel_lr}, timesteps={pixel_num_timesteps}")
     DBG(f"LatentDenoiser config -> model_channels={latent_model_channels}, num_res_blocks={latent_num_res_blocks}, batch_size={latent_batch_size}, lr={latent_lr}, timesteps={latent_num_timesteps}")
@@ -532,6 +537,7 @@ if __name__ == '__main__':
             epochs=50,
             lr=dcgan_lr,
             beta1=dcgan_beta1,
+            real_label=dcgan_real_label,
         )
     else:
         DBG('Skipping DCGAN training.')

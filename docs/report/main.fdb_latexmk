@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex main"] 1776596600.54509 "main.aux" "main.bbl" "main" 1776680805.93774 0
+["bibtex main"] 1776700086.20623 "main.aux" "main.bbl" "main" 1776700086.65994 0
   "./main.bib" 1776507920.12431 2481 fab5df8af20e38f8b333ebddd3671eb3 ""
   "./splncs04.bst" 1776154541.31456 32145 e60166855197bacbabbb60413b520282 ""
-  "main.aux" 1776680805.67224 3655 670d15763cccef6bb0dad1160cc8ee2b "pdflatex"
+  "main.aux" 1776700086.52331 3706 b3fd7350e74f028873792ca1f537f331 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1776680805.16587 "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" "main.pdf" "main" 1776680805.93788 0
-  "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" 1776680804.9505 12132 a0ca93daf90ccc358d4df103211d5830 ""
+["pdflatex"] 1776700086.2505 "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" "main.pdf" "main" 1776700086.66005 0
+  "/Users/tiagosilva/Documents/ArtBench/docs/report/main.tex" 1776700085.5781 17082 df352c1dd1a585c76c59ad811b7714a0 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1772380719 2971 def0b6c1f0b107b3b936def894055589 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/map/fontname/texfonts.map" 1772380719 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map" 1772380719 5541360 f183aac233c4cd1e5ef882fcbe8e7096 ""
@@ -16,6 +16,8 @@
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/tfm/jknappen/ec/ecbx1000.tfm" 1772380719 3584 2d666ecf6d466d8b007246bc2f94d9da ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/tfm/jknappen/ec/ecbx1200.tfm" 1772380719 3584 402da0b29eafbad07963b1224b222f18 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/tfm/jknappen/ec/ecbx1440.tfm" 1772380719 3584 13049b61b922a28b158a38aeff75ee9b ""
+  "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/tfm/jknappen/ec/ecrm0500.tfm" 1772380719 3584 178baad7ffca7f5d3428a83bd7cc64c3 ""
+  "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/tfm/jknappen/ec/ecrm0700.tfm" 1772380719 3584 cf973739aac7ab6247f9150296af7954 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/tfm/jknappen/ec/ecrm0900.tfm" 1772380719 3584 d3d8ac8b25ca19c0a40b86a5db1e8ccc ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/tfm/jknappen/ec/ecrm1000.tfm" 1772380719 3584 adb004a0c8e7c46ee66cad73671f37b4 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/fonts/tfm/jknappen/ec/ecrm1200.tfm" 1772380719 3584 f80ddd985bd00e29e9a6047ebd9d4781 ""
@@ -113,10 +115,10 @@
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-dist/web2c/texmf.cnf" 1772380719 43633 14bbc273cebd985e64ab1a698333eaf9 ""
   "/opt/homebrew/Cellar/texlive/20260301/share/texmf-var/web2c/pdftex/pdflatex.fmt" 1772380719 3636956 5168b884cb430e6a6336cfea08fa659a ""
   "llncs.cls" 1776154541.31438 43401 6bb5881f543faf590aa3e2c129be0e96 ""
-  "main.aux" 1776680805.67224 3655 670d15763cccef6bb0dad1160cc8ee2b "pdflatex"
-  "main.bbl" 1776596600.62606 1334 971c77d0278191965b371ad02e2ef92a "bibtex main"
-  "main.out" 1776680805.67295 506 db37d499795d4f98382b565ff469e7b5 "pdflatex"
-  "main.tex" 1776680804.9505 12132 a0ca93daf90ccc358d4df103211d5830 ""
+  "main.aux" 1776700086.52331 3706 b3fd7350e74f028873792ca1f537f331 "pdflatex"
+  "main.bbl" 1776700086.24914 1334 971c77d0278191965b371ad02e2ef92a "bibtex main"
+  "main.out" 1776700086.52364 506 db37d499795d4f98382b565ff469e7b5 "pdflatex"
+  "main.tex" 1776700085.5781 17082 df352c1dd1a585c76c59ad811b7714a0 ""
   (generated)
   "main.aux"
   "main.log"

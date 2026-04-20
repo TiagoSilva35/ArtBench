@@ -24,8 +24,8 @@ def train_vae(
     os.makedirs(os.path.join(run_dir, "samples"), exist_ok=True)
 
     model = model.to(device)
-
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    # Keep optimizer on the model object because model.train_step uses model.optimizer.
+    model.optimizer = optim.Adam(model.parameters(), lr=lr)
 
     history = {
         'train_loss': [],
@@ -106,7 +106,10 @@ def train_DCGAN(
     val_loader=None,
     epochs=50,
     checkpoint_freq=10,
-    save_dir='dcgan_results'
+    save_dir='dcgan_results',
+    lr=2e-4,
+    beta1=0.5,
+    real_label=0.9,
 ):
 
     # 1. Setup Directories
@@ -117,6 +120,10 @@ def train_DCGAN(
 
     # Ensure all DCGAN modules are on the same device as input tensors.
     model = model.to(device)
+
+    # Keep optimizer construction in one place so HPO/final training uses the same path.
+    model.optimizer_G = optim.Adam(model.generator.parameters(), lr=lr, betas=(beta1, 0.999))
+    model.optimizer_D = optim.Adam(model.discriminator.parameters(), lr=lr, betas=(beta1, 0.999))
 
     g_params = sum(p.numel() for p in model.generator.parameters())
     d_params = sum(p.numel() for p in model.discriminator.parameters())
@@ -131,7 +138,6 @@ def train_DCGAN(
     # 2. Fixed latent vectors for consistent image samples over epochs
     fixed_z = torch.randn(16, model.generator.latent_dim, device=device)
 
-    # TODO: Setup FID metric if requested and available
 
     history = {'d_loss': [], 'g_loss': [], 'fid': []}
 
@@ -150,8 +156,7 @@ def train_DCGAN(
             real_imgs = unpack_images(batch).to(device)
             batch_size = real_imgs.size(0)
 
-            # LABEL SMOOTHING: Use 0.9 for real images instead of 1.0 to prevent D from becoming too confident
-            valid = torch.full((batch_size,), 0.9, device=device)
+            valid = torch.full((batch_size,), real_label, device=device)
             fake_targets = torch.full((batch_size,), 0.0, device=device)
 
             model.optimizer_D.zero_grad()
@@ -315,7 +320,7 @@ def train_diffusion(model, train_loader, schedule, device, val_loader=None, epoc
                             images = vae.reparameterize(mu, logvar)
 
 
-                    loss = model.compute_loss(images, schedule).item()
+                    loss = model.compute_loss(images, schedule, device).item()
 
                     val_loss_accum += loss
                     n_batches += 1
