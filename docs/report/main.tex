@@ -6,6 +6,7 @@
 \usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{parskip}
 \usepackage{float}
 
@@ -38,13 +39,40 @@
 \subsection{Implementation Details and Reproducibility}
 
 \subsection{Theoretical Rationale for Hyperparameter Choices}
+The choice of which hyperparameters to tune and the search space design follows 4 main principles:
+enable sufficient representational capacity to model ArtBench-10's complexity, stable training dynamics,
+regularization to prevent overfitting, and computational feasibility under resource constraints. 
 
 \subsubsection{Variational Autoencoders (VAE)}
-
+For the VAE we tuned latent dimensionality, base channels, learning rate, batch size, and $\beta$ (the weight of the KL divergence term in the loss).
+Latent dimension is intended to control the capacity of capturing the underlying data distribution, expressing a trade-off between reconstruction fidelity and generalization.
+Base channels determine the width of the convolutional layers, which affects the model's ability to learn complex features.
+Learning rate was sampled from a log-uniform distribution to allow exploration across several orders of magnitude, which is crucial for stable convergence.
+The $\beta$ parameter was also sampled from a log-uniform distribution to explore a wide range of regularization strengths, consistent with the objective function:
+\begin{equation}
+    \mathcal{L} = \mathbb{E}_{q(z|x)}[\log p(x|z)] - \beta \cdot D_{KL}(q(z|x) || p(z))
+\end{equation}
+where $\beta$ controls the trade-off between reconstruction accuracy and latent space regularization.
 
 \subsubsection{Generative Adversarial Networks (GAN)}
+For GANs, the search space targeted parameters known to affect training 
+stability and sample diversity. The latent dimensionality and the number of 
+feature maps determine generator and discriminator capacity. We additionally 
+tuned the real-label target used in label smoothing, which can reduce 
+discriminator overconfidence and improve gradient quality early in training. 
+The Adam $\beta_1$ parameter was also tuned because adversarial optimization 
+is sensitive to momentum settings.
 
 \subsubsection{Diffusion Models}
+For diffusion models, we tuned the denoiser width and depth 
+(\texttt{model\_channels} and \texttt{num\_res\_blocks}), learning rate, 
+batch size, and the number of diffusion timesteps. The timestep count 
+captures the trade-off between computational cost and generative fidelity: 
+more timesteps generally improve sample quality but increase training and 
+sampling cost. In the latent-diffusion setting, the VAE was kept frozen so 
+that the study isolates the effect of denoiser hyperparameters and avoids 
+conflating them with representation learning in the autoencoder.
+
 
 
 \section{Experimental Design}
