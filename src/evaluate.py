@@ -280,20 +280,6 @@ def load_dcgan_from_checkpoint(device: torch.device, checkpoint_path: Path) -> D
     return model
 
 
-def load_stylegan_from_checkpoint(device: torch.device, checkpoint_path: Path) -> StyleGAN:
-    state = torch.load(checkpoint_path, map_location=device, weights_only=True)
-    z_dim, w_dim, img_resolution, img_channels, mapping_layers = infer_stylegan_architecture(state)
-    model = StyleGAN(
-        z_dim=z_dim,
-        w_dim=w_dim,
-        img_resolution=img_resolution,
-        img_channels=img_channels,
-        mapping_layers=mapping_layers,
-    ).to(device)
-    model.generator.load_state_dict(state["generator_state_dict"])
-    model.discriminator.load_state_dict(state["discriminator_state_dict"])
-    model.eval()
-    return model
 
 
 def load_pixel_unet_from_checkpoint(device: torch.device, checkpoint_path: Path) -> PixelUNet:
@@ -385,18 +371,6 @@ def run_single_eval(
                 generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
             processed += n
         del dcgan
-    elif model_key == "stylegan":
-        stylegan = load_stylegan_from_checkpoint(device, Path("stylegan_results") / "StyleGAN_final.pt")
-        while processed < num_samples:
-            n = min(gen_batch_size, num_samples - processed)
-            generated = sample_stylegan(stylegan, num_samples=n, device=device, batch_size=n)
-            update_metrics_with_generated_batch(generated, processed)
-            export_images_to_folder(generated, generated_images_dir, start_idx=processed)
-            generated_prdc_chunks.append(generated.detach().cpu())
-            if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
-                generated_vis_chunks.append(generated[: n_vis - sum(x.size(0) for x in generated_vis_chunks)].detach().cpu())
-            processed += n
-        del stylegan
     elif model_key == "pixelunet":
         pixel = load_pixel_unet_from_checkpoint(device, Path("PixelUNet_results") / "PixelUNet_final.pt")
         schedule = GaussianDiffusion(
@@ -520,10 +494,10 @@ def show_interpolation_comparison(lerp_images: torch.Tensor, slerp_images: torch
     plt.savefig(output_dir / f"{title}.png")
 
 def interpolation(model_name:str, interpolation_steps: int, seed_a: int, seed_b: int, output_dir: str, device: torch.device):
-    run_dir = output_dir / model_name / f"seed_{seed_a}"
+    run_dir = Path(output_dir) / model_name / f"seed_{seed_a}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    t_values = torch.linspace(0.0, 1.0, steps=interpolation_steps, device=device)
+    t_values = torch.linspace(0.0, 0.1, steps=interpolation_steps, device=device)
 
     model = None
     if model_name == "vae":
@@ -542,14 +516,6 @@ def interpolation(model_name:str, interpolation_steps: int, seed_a: int, seed_b:
         generated_lerp = sample_dcgan(dcgan, num_samples=interpolation_steps, device=device, batch_size=128, noise=lerp_path)
         generated_slerp = sample_dcgan(dcgan, num_samples=interpolation_steps, device=device, batch_size=128, noise=slerp_path)
         del dcgan
-    elif model_name == "stylegan":
-        stylegan = load_stylegan_from_checkpoint(device, Path("stylegan_results") / "StyleGAN_final.pt")
-        noise_a = make_noise_batch(shape=(stylegan.z_dim,), batch_size=1, seed=seed_a, device=device)[0]
-        noise_b = make_noise_batch(shape=(stylegan.z_dim,), batch_size=1, seed=seed_b, device=device)[0]
-        lerp_path, slerp_path = build_interpolation_paths(noise_a, noise_b, t_values)
-        generated_lerp = sample_stylegan(stylegan, num_samples=interpolation_steps, device=device, batch_size=64, noise=lerp_path)
-        generated_slerp = sample_stylegan(stylegan, num_samples=interpolation_steps, device=device, batch_size=64, noise=slerp_path)
-        del stylegan
     elif model_name == "pixelunet":
         pixel = load_pixel_unet_from_checkpoint(device, Path("PixelUNet_results") / "PixelUNet_final.pt")
         schedule = GaussianDiffusion(
