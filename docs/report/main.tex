@@ -282,6 +282,79 @@ models suggest that the results are consistent and not heavily influenced by
 random initialization or stochastic training dynamics which is a positive sign of the 
 robustness of the training process.
 
+\subsection{Qualitative results}
+
+\subsubsection{Samples} All the following samples and reconstructions are from the last epoch of the more well optimized run of each model.
+
+Figure \ref{sample_vae} show the sampling of 8 images.
+The samples are obtained from pure noise and its decoding of the VAE. 
+Although they vaguely resemble the original dataset, it is difficult to pinpoint what type of painting it is trying to generate.
+This is due to the averaging effect that the VAE latent space has.
+As predicted, it is trying to produce "averages" of the painting from the dataset, resulting in very sharpless images.
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{sample_vae.png}
+    \caption{Generated images from VAE}
+    \label{sample_vae}
+\end{figure}
+
+Figure \ref{comparison_vae} show the comparison between 8 real images and their reconstruction.
+The reconstructions are calculated from the original image, by making it go through the encoder and then the decoder.
+In it, it can be seen a clear resemblense between the original and the reconstructed images.
+However, the reconstructions look blurry due to the VAE's latent space "averaging" effect
+
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{comparison_vae.png}
+    \caption{Comparison between real and reconstructed VAE images}
+    \label{comparison_vae}
+\end{figure}
+
+Figure \ref{sample_dcgan} shows 8 samples from the DCGAN model.
+These samples are the result of generated random noise coming out of the generator of the model.
+These images look better than the ones generated from VAE because the DCGAN model does not use a latent space, it is an adversarial model.
+By having a discriminator "competing" with a generator, the latter is forced to create sharper, more well-defined images in order to fool the discriminator.
+Although the blurry images from the VAE may have less error on pixel-by-pixel basis, the images from DCGAN look more realistic.
+
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{sample_dcgan.png}
+    \caption{Generated images from DCGAN}
+    \label{sample_dcgan}
+\end{figure}
+
+Figure \ref{sample_latent} shows 8 samples from the Latent Denoise Network model.
+Similarly to the previous models, these samples are generated from random noise.
+Through the model's scheduler (GaussianDiffusion), this noise turns into an image represented in the VAE's latent space, which is then decoded by the VAE.
+Although the images are blurry, due to the use of the latent space, they present a better quality than the VAE samples, looking more properly like paintings.
+This is because, on top of the VAE, this model uses a DDPM Scheduler, time embedding and ResnetBlocks, which give more robustness to the model.
+
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{sample_latent.png}
+    \caption{Generated images from Latent Denoise Network}
+    \label{sample_latent}
+\end{figure}
+
+Figure \ref{sample_pixel} shows 8 samples from the Pixel UNet model.
+As per the previous models, these samples are generated from random noise.
+This generation process is the same as in the Latent Denoise Network model, but without the VAE's decoder at the end, because this model does not use a latent space.
+Consequently, as can be seen, the samples it produces are not blurry and are very realistic.
+
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{sample_pixel.png}
+    \caption{Generated images from Pixel UNet}
+    \label{sample_pixel}
+\end{figure}
+
+\subsubsection{LERP vs SLERP}
+
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{vae_Lerp_vs_Slerp.png}
+    \caption{Lerp vs Slerp comparison in VAE}
+    \label{lerp_slerp_latent}
+\end{figure}
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{latent_lerp_vs_slerp.png}
+    \caption{Lerp VS Slerp comparison in Latent Denoise Network}
+    \label{lerp_slerp_vae}
+\end{figure}
 
 \section{Conclusion}
 
