@@ -23,8 +23,24 @@
 
 \section{Introduction}
 
-\section{Problem Formulation}
+Generative models aim to learn data distributions to synthesize new, realistic samples.
+In image generation, this requires balancing the ability to 
+produce perceptually convincing samples with the need to keep
+diversity and consistency with the underlying data distribution.
 
+This project investigates generative modelling on ArtBench-10, a dataset of 32x32
+RGB images of paintings from 10 different styles. We implement a 
+complete pipeline to train, sample, evaluate and compare three distinct 
+generative model families: Variational Autoencoders (VAE), 
+Generative Adversarial Networks (specifically a DCGAN), and Diffusion Models (both pixelUnet and 
+latent diffusion). 
+Our study includes a systematic hyperparameter optimization 
+process using Bayesian methods, as well as a comprehensive 
+evaluation protocol that combines quantitative metrics (Fréchet 
+Inception Distance, Kernel Inception Distance, Precision) with qualitative visual inspection of
+generated samples. By analyzing the strengths and weaknesses of 
+each architecture in the context of ArtBench-10, we aim 
+to provide insights on the trade-offs between sample quality, diversity, and training stability across different generative modeling approaches.
 
 \section{Methodological Framework}
 
