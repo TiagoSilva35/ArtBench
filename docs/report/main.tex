@@ -359,17 +359,66 @@ Consequently, as can be seen, the samples it produces are not blurry and are ver
     \label{sample_pixel}
 \end{figure}
 
-\subsubsection{LERP vs SLERP}
+\subsubsection{LERP vs SLERP} The following images are comparisons between the Linear (LERP) and Spherical Linear (SLERP) interpolations of two random noise samples.
+In LERP, the interpolation is done in a linear progression (like the name implies), which is simpler to do, but gives less continuous samples, with more noticeble abrupt changes from sample to sample.
+In SLERP, it is assumed that the latent space from which the interpolation is done has a spherical curvature, due to it being trained to follow a normal distribution.
+Therefore, in order to transverse this space, it should be done along this spherical surface, hence SLERP.
+The most well optimized models were used for these interpolations.
+The noise used was different in all samples, but the same seed was used for the generator of those noises.
+
+The Figure \ref{lerp_slerp_vae} shows both interpolations of the VAE model.
+Both show a smooth transition from the left-most sample to the right-most.
+However, as expected, the top row (LERP) shows slightly more abrupt transitions, specially between samples at the center, than the bottom row (SLERP).
+The fact that, in both types of interpolation, the smoothness of the transitions was seen shows that this VAE latent space is small, but continuous.
 
 \begin{figure}[!ht]
     \includegraphics[width=\linewidth]{vae_Lerp_vs_Slerp.png}
     \caption{Lerp vs Slerp comparison in VAE}
-    \label{lerp_slerp_latent}
+    \label{lerp_slerp_vae}
 \end{figure}
+
+The Figures \ref{lerp_slerp_dcgan} and \ref{lerp_slerp_bad_dcgan} show two LERP and SLERP interpolation of the DCGAN model.
+In all the interpolation, it is clearly visible the smooth transitions between samples.
+However, in both figures, as expected, the LERP interpolation has more abrupt transitions than the SLERP ones, specially at the right-most side of the figures.
+It should be noted that these interpolations were generated from the interval of t-values [0, 0.5], in order to better show the smoothness of the transitions, but, in the LERP examples, the discontinuity is still noticeable.
+
+Additionally, by showing samples with all pixels in black, Figure \ref{lerp_slerp_bad_dcgan} is the consequence of the rugosity of the DCGAN latent space.
+Contrary to VAE, this model is trained to generate realistic samples, not to generate continuous and organized latent spaces.
+Therefore, these black samples are an example of the "gaps" that the DCGAN latent space has and its difficulty in being transversed without going through them.
+
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{dcgan_Lerp_vs_Slerp.png}
+    \caption{Lerp vs Slerp comparison in DCGAN}
+    \label{lerp_slerp_dcgan}
+\end{figure}
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{bad_dcgan_lerp_vs_slerp.png}
+    \caption{Bad example of Lerp vs Slerp comparison in DCGAN}
+    \label{lerp_slerp_bad_dcgan}
+\end{figure}
+
+In the Figure \ref{lerp_slerp_latent}, it can be seen the interpolation of the Latent Denoise Network model.
+Although it uses the latent space of the VAE model and both models generate blurry samples, this one does not produce continuous transitions.
+This lack of continuity is clear in shared by both types of interpolation.
+The reason behind these very abrupt changes (so abrupt that most two consecutive samples are completely different from one another) is the vastness of the latent space.
+The Latent Denoise Network's latent space is bigger than the VAE's because the latter only uses it for encoding and deconding, whereas the former uses it to denoise samples from it.
+
 \begin{figure}[!ht]
     \includegraphics[width=\linewidth]{latent_lerp_vs_slerp.png}
     \caption{Lerp VS Slerp comparison in Latent Denoise Network}
-    \label{lerp_slerp_vae}
+    \label{lerp_slerp_latent}
+\end{figure}
+
+The Figure \ref{lerp_slerp_pixel} shows the interpolation in the Pixel UNet model.
+These interpolations look even less continuous than the previous model's ones.
+This is because this model does not use a latent space.
+So, these interpolations have no spatial meaning.
+They are simply new samples taken from this diffusion model.
+
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{pixelunet_Lerp_vs_Slerp.png}
+    \caption{Lerp VS Slerp comparison in Pixel UNet}
+    \label{lerp_slerp_pixel}
 \end{figure}
 
 \section{Conclusion}
