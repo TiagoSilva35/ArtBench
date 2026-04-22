@@ -31,11 +31,10 @@ from src.helpers.utils import show_batch_grid, set_seed, get_device
 from src.helpers.data_utils import build_image_transform, resolve_train_indices
 from src.helpers.csv_handler import export_split_to_folder
 from src.helpers.diffusion_helpers import GaussianDiffusion
-from src.train import train_vae, train_DCGAN, train_diffusion, train_stylegan
+from src.train import train_vae, train_DCGAN, train_diffusion
 from src.models.vae import VAE
 from src.models.DCGAN import DCGAN
 from src.models.DenoiserNetworks import PixelUNet, LatentDenoiseNetwork
-from src.models.StyleGAN import StyleGAN
 
 TRAINABLE_MODELS = ['vae', 'dcgan', 'stylegan', 'pixelunet', 'latentdenoiser']
 
@@ -250,50 +249,6 @@ def load_diffusion(model, train_loader, gaussian_diffusion, device, vae, save_di
     )
 
 
-def load_stylegan(
-    model,
-    train_loader,
-    device,
-    save_dir='stylegan_results',
-    resume=True,
-    epochs=50,
-    lr=2e-3,
-):
-    final_path = Path(save_dir) / "StyleGAN_final.pt"
-    checkpoint_path = final_path if resume else None
-    if checkpoint_path is not None and not checkpoint_path.exists():
-        checkpoint_path = find_latest_checkpoint(Path(save_dir) / "checkpoints", "StyleGAN_epoch_*.pt")
-
-    if checkpoint_path is not None and checkpoint_path.exists():
-        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
-        try:
-            model.generator.load_state_dict(checkpoint["generator_state_dict"])
-            model.discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
-        except RuntimeError as exc:
-            DBG(f"Skipping incompatible StyleGAN checkpoint {checkpoint_path}: {exc}")
-            checkpoint = None
-        if checkpoint is None:
-            checkpoint_path = None
-        else:
-            if "optimizer_G_state_dict" in checkpoint:
-                model.optimizer_G.load_state_dict(checkpoint["optimizer_G_state_dict"])
-            if "optimizer_D_state_dict" in checkpoint:
-                model.optimizer_D.load_state_dict(checkpoint["optimizer_D_state_dict"])
-            DBG(f"Loaded full StyleGAN checkpoint: {checkpoint_path}")
-            return model, None
-
-    return train_stylegan(
-        model,
-        train_loader,
-        device=device,
-        val_loader=None,
-        epochs=epochs,
-        lr=lr,
-        save_dir=save_dir,
-        checkpoint_freq=10,
-    )
-
-
 set_seed(42)
 device = get_device()
 if str(SCRIPTS_DIR) not in sys.path:
@@ -471,13 +426,6 @@ if __name__ == '__main__':
 
     vae_model = VAE(latent_dim=vae_latent_dim, num_channels=3, base_channels=vae_base_channels)
     dcgan_model = DCGAN(latent_dim=dcgan_latent_dim, img_channels=3, feature_maps=dcgan_feature_maps)
-    stylegan_model = StyleGAN(
-        z_dim=stylegan_z_dim,
-        w_dim=stylegan_w_dim,
-        img_resolution=IMAGE_SIZE,
-        img_channels=3,
-        mapping_layers=stylegan_mapping_layers,
-    )
 
     pixel_schedule = GaussianDiffusion(
         num_timesteps=pixel_num_timesteps,
@@ -541,19 +489,6 @@ if __name__ == '__main__':
         )
     else:
         DBG('Skipping DCGAN training.')
-
-    if 'stylegan' in selected_models:
-        trained_StyleGAN, history_StyleGAN = load_stylegan(
-            stylegan_model,
-            stylegan_loader,
-            device,
-            save_dir=stylegan_save_dir,
-            resume=resume,
-            epochs=50,
-            lr=stylegan_lr,
-        )
-    else:
-        DBG('Skipping StyleGAN training.')
 
     if 'pixelunet' in selected_models:
         trained_PixelUNet, history_PixelUNet = load_diffusion(

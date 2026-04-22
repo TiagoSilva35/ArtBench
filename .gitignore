@@ -5,10 +5,6 @@
 /src/helpers/__pycache__
 /src/models/__pycache__
 /.DS_Store
-/vae_results/
 /exported_data/
-/dcgan_results/
-/PixelUNet_results/
-/LatentDenoiseNetwork_results/
 /evaluation_results/
 *.pyc

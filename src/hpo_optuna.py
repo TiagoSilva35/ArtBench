@@ -18,8 +18,6 @@ from src.helpers.diffusion_helpers import GaussianDiffusion
 from src.helpers.utils import get_device, set_seed
 from src.models.DCGAN import DCGAN
 from src.models.DenoiserNetworks import LatentDenoiseNetwork, PixelUNet
-from src.models.StyleGAN import StyleGAN
-from src.models.StyleGan2Loss import StyleGAN2Loss
 from src.models.vae import VAE
 from src.train import train_DCGAN, train_diffusion, train_stylegan, train_vae
 
@@ -258,150 +256,6 @@ def train_eval_dcgan(params: dict, context: dict, wandb_run=None) -> float:
             wandb_run,
             {
                 "model": "dcgan",
-                "epoch": epoch,
-                "train_d_loss": avg_train_d,
-                "train_g_loss": avg_train_g,
-                "val_d_loss": avg_val_d,
-                "val_g_loss": avg_val_g,
-                "objective": objective,
-                "best_objective": best_obj,
-            },
-        )
-
-    return best_obj
-
-
-def train_eval_stylegan(params: dict, context: dict, wandb_run=None) -> float:
-    train_loader, val_loader = make_loaders(
-        context["train_hf"],
-        context["transform"],
-        context["train_indices"],
-        context["val_indices"],
-        int(params["batch_size"]),
-    )
-
-    device = context["device"]
-    max_batches = context["max_batches"]
-
-    model = StyleGAN(
-        z_dim=int(params["z_dim"]),
-        w_dim=int(params["w_dim"]),
-        img_resolution=IMAGE_SIZE,
-        img_channels=3,
-        mapping_layers=int(params["mapping_layers"]),
-    ).to(device)
-
-    model.optimizer_G = torch.optim.Adam(
-        list(model.generator.mapping.parameters()) + list(model.generator.synthesis.parameters()),
-        lr=float(params["lr"]),
-        betas=(0.0, 0.99),
-    )
-    model.optimizer_D = torch.optim.Adam(
-        model.discriminator.parameters(),
-        lr=float(params["lr"]),
-        betas=(0.0, 0.99),
-    )
-
-    loss_obj = StyleGAN2Loss(
-        device=device,
-        G_mapping=model.generator.mapping,
-        G_synthesis=model.generator.synthesis,
-        D=model.discriminator,
-        style_mixing_prob=float(params["style_mixing_prob"]),
-        r1_gamma=float(params["r1_gamma"]),
-        pl_weight=float(params["pl_weight"]),
-    )
-
-    best_obj = float("inf")
-
-    for epoch in range(1, context["epochs"] + 1):
-        model.train()
-        train_d = 0.0
-        train_g = 0.0
-        train_n = 0
-
-        for bidx, batch in enumerate(train_loader):
-            if max_batches is not None and bidx >= max_batches:
-                break
-
-            real_imgs = unpack_images(batch).to(device)
-            batch_size = real_imgs.size(0)
-            real_c = torch.zeros(batch_size, 0, device=device)
-            gen_c = torch.zeros(batch_size, 0, device=device)
-            gen_z = torch.randn(batch_size, model.z_dim, device=device)
-
-            model.optimizer_G.zero_grad(set_to_none=True)
-            loss_obj.accumulate_gradients(
-                phase="Gboth",
-                real_img=real_imgs,
-                real_c=real_c,
-                gen_z=gen_z,
-                gen_c=gen_c,
-                sync=True,
-                gain=1.0,
-            )
-            model.optimizer_G.step()
-
-            model.optimizer_D.zero_grad(set_to_none=True)
-            loss_obj.accumulate_gradients(
-                phase="Dboth",
-                real_img=real_imgs,
-                real_c=real_c,
-                gen_z=gen_z,
-                gen_c=gen_c,
-                sync=True,
-                gain=1.0,
-            )
-            model.optimizer_D.step()
-
-            with torch.no_grad():
-                fake_imgs = model.generator(gen_z, gen_c)
-                d_real = F.softplus(-model.discriminator(real_imgs, real_c)).mean()
-                d_fake = F.softplus(model.discriminator(fake_imgs, gen_c)).mean()
-                g_loss = F.softplus(-model.discriminator(fake_imgs, gen_c)).mean()
-                d_loss = d_real + d_fake
-
-            train_d += float(d_loss.item())
-            train_g += float(g_loss.item())
-            train_n += 1
-
-        avg_train_d = train_d / max(train_n, 1)
-        avg_train_g = train_g / max(train_n, 1)
-
-        model.eval()
-        val_d = 0.0
-        val_g = 0.0
-        val_n = 0
-        with torch.no_grad():
-            for bidx, batch in enumerate(val_loader):
-                if max_batches is not None and bidx >= max_batches:
-                    break
-
-                real_imgs = unpack_images(batch).to(device)
-                batch_size = real_imgs.size(0)
-                real_c = torch.zeros(batch_size, 0, device=device)
-                gen_c = torch.zeros(batch_size, 0, device=device)
-                gen_z = torch.randn(batch_size, model.z_dim, device=device)
-                fake_imgs = model.generator(gen_z, gen_c)
-
-                d_real = F.softplus(-model.discriminator(real_imgs, real_c)).mean()
-                d_fake = F.softplus(model.discriminator(fake_imgs, gen_c)).mean()
-                g_loss = F.softplus(-model.discriminator(fake_imgs, gen_c)).mean()
-                d_loss = d_real + d_fake
-
-                val_d += float(d_loss.item())
-                val_g += float(g_loss.item())
-                val_n += 1
-
-        avg_val_d = val_d / max(val_n, 1)
-        avg_val_g = val_g / max(val_n, 1)
-        objective = avg_val_d + avg_val_g
-        best_obj = min(best_obj, objective)
-
-        maybe_log(
-            wandb_run,
-            {
-                "model": "stylegan",
                 "epoch": epoch,
                 "train_d_loss": avg_train_d,
                 "train_g_loss": avg_train_g,
@@ -675,8 +529,6 @@ def objective_factory(model_key: str, context: dict, wandb_module, args):
                 score = train_eval_vae(params, context=context, wandb_run=wandb_run)
             elif model_key == "dcgan":
                 score = train_eval_dcgan(params, context=context, wandb_run=wandb_run)
-            elif model_key == "stylegan":
-                score = train_eval_stylegan(params, context=context, wandb_run=wandb_run)
             elif model_key == "pixelunet":
                 score = train_eval_pixelunet(params, context=context, wandb_run=wandb_run)
             elif model_key == "latentdenoiser":
@@ -749,26 +601,6 @@ def train_final_model(model_key: str, best_params: dict, context: dict, args) ->
             lr=float(best_params.get("lr", 2e-4)),
             beta1=float(best_params.get("beta1", 0.5)),
             real_label=float(best_params.get("real_label", 0.9)),
-        )
-        return
-
-    if model_key == "stylegan":
-        model = StyleGAN(
-            z_dim=int(best_params.get("z_dim", 256)),
-            w_dim=int(best_params.get("w_dim", 256)),
-            img_resolution=IMAGE_SIZE,
-            img_channels=3,
-            mapping_layers=int(best_params.get("mapping_layers", 6)),
-        )
-        train_stylegan(
-            model,
-            final_loader,
-            device=device,
-            val_loader=None,
-            epochs=args.final_epochs,
-            lr=float(best_params.get("lr", 2e-3)),
-            save_dir="stylegan_results",
-            checkpoint_freq=10,
         )
         return
 

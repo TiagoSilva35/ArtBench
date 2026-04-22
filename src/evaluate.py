@@ -47,11 +47,12 @@ def load_real_images(
     n_samples: int,
     pool_seed: int,
     batch_size: int,
+    split_name: str,
 ) -> torch.Tensor:
     hf_ds = load_kaggle_artbench10_splits(KAGGLE_ROOT)
-    train_hf = hf_ds["train"]
+    split_hf = hf_ds[split_name]
     transform = build_image_transform(image_size)
-    full_ds = HFDatasetTorch(train_hf, transform=transform)
+    full_ds = HFDatasetTorch(split_hf, transform=transform)
     if n_samples > len(full_ds):
         raise ValueError(f"Requested {n_samples} real images but dataset has only {len(full_ds)}.")
 
@@ -599,6 +600,13 @@ def main() -> None:
     parser.add_argument("--seeds", type=int, default=10, help="Number of random-seed repetitions.")
     parser.add_argument("--seed-start", type=int, default=42, help="Starting seed for repetitions.")
     parser.add_argument("--real-pool-seed", type=int, default=1234, help="Seed for fixed real-image pool sampling.")
+    parser.add_argument(
+        "--real-split",
+        type=str,
+        default="test",
+        choices=["train", "test"],
+        help="Dataset split used for real images in FID/KID computation.",
+    )
     parser.add_argument("--real-batch-size", type=int, default=256, help="Batch size for loading real images.")
     parser.add_argument("--gen-batch-size", type=int, default=128, help="Batch size for generators.")
     parser.add_argument(
@@ -642,6 +650,7 @@ def main() -> None:
         n_samples=args.num_samples,
         pool_seed=args.real_pool_seed,
         batch_size=args.real_batch_size,
+        split_name=args.real_split,
     )
 
     real_images_dir = args.output_dir / "_torch_fidelity" / f"real_{args.num_samples}"
