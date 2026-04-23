@@ -13,12 +13,19 @@
 \begin{document}
 \raggedbottom
 \title{ArtBench-10 Generative Modeling: A Comparative Study of VAE, GAN, and Diffusion Models}
+\titlerunning{ArtBench-10 Generative Modeling}
 \author{Tiago Silva \and João Coelho}
 \institute{University of Coimbra}
 \maketitle
 
 \begin{abstract}
-    Nothing yet.
+We implement and compare three generative model families on ArtBench-10, 
+including a VAE, a DCGAN, and diffusion-based models (PixelUNet and a latent denoiser). 
+Models are selected via Bayesian hyperparameter optimization on a 20\% subset, trained on the full dataset,
+and evaluated using FID, KID, and Precision across 10 random seeds.  In addition to quantitative metrics, 
+we perform qualitative analysis of generated samples and latent space interpolations to assess realism, diversity, and latent space structure.
+Results show that DCGAN achieves the best distributional alignment (FID/KID), while PixelUNet produces the 
+most realistic samples according to Precision.
 \end{abstract}
 
 \section{Introduction}
@@ -421,7 +428,11 @@ They are essentially just new samples taken from this diffusion model.
 \end{figure}
 
 \section{Conclusion}
-
+On ArtBench-10, DCGAN achieved the best global distributional performance under our evaluation protocol, 
+obtaining the lowest FID and KID scores. Diffusion-based PixelUNet produced the most realistic individual 
+samples according to Precision, while the VAE generated smoother but blurrier outputs. Overall, our results 
+highlight the trade-offs between realism, diversity, and latent-space structure across all model families
+and flags the importance of combining quantitative metrics with qualitative inspection for a comprehensive evaluation of generative models.
 \section*{Use of External Resources and AI Tools}
 This project utilized ArtBench-10 (Kaggle). Gemini assisted in LaTeX formatting and analysis verification.
 

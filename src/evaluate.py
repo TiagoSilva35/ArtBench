@@ -91,7 +91,7 @@ _PRDC_INCEPTION: nn.Module | None = None
 def get_prdc_inception(device: torch.device) -> nn.Module:
     global _PRDC_INCEPTION
     if _PRDC_INCEPTION is None:
-        model = inception_v3(weights=Inception_V3_Weights.IMAGENET1K_V1, aux_logits=False)
+        model = inception_v3(weights=Inception_V3_Weights.IMAGENET1K_V1)
         model.fc = nn.Identity()  # type: ignore[assignment]
         model.eval()
         _PRDC_INCEPTION = model
@@ -321,8 +321,8 @@ def run_single_eval(
 ) -> tuple[float, float, float, float, float, float, float]:
     set_global_seed(seed)
 
-    fid_metric = build_fid_metric(metrics_device)
-    kid_metric = build_kid_metric(metrics_device)
+    #fid_metric = build_fid_metric(metrics_device)
+    #kid_metric = build_kid_metric(metrics_device)
     n_vis = 64
     generated_vis_chunks: list[torch.Tensor] = []
     generated_prdc_chunks: list[torch.Tensor] = []
@@ -341,10 +341,10 @@ def run_single_eval(
             gen_chunk = gen_batch[local_offset : local_offset + n]
             real_u8 = images_to_uint8(real_batch.to(metrics_device))
             gen_u8 = images_to_uint8(gen_chunk.to(metrics_device))
-            fid_metric.update(real_u8, real=True)
-            fid_metric.update(gen_u8, real=False)
-            kid_metric.update(real_u8, real=True)
-            kid_metric.update(gen_u8, real=False)
+            # fid_metric.update(real_u8, real=True)
+            # fid_metric.update(gen_u8, real=False)
+            # kid_metric.update(real_u8, real=True)
+            # kid_metric.update(gen_u8, real=False)
             local_offset += n
 
     processed = 0
@@ -353,8 +353,9 @@ def run_single_eval(
             raise ValueError("VAE model is required for model_key='vae'")
         while processed < num_samples:
             n = min(gen_batch_size, num_samples - processed)
+            print("Generating images %d/%d..." % (processed + n, num_samples), end="\r")
             generated = sample_vae(vae_model, num_samples=n, device=device, batch_size=n)
-            update_metrics_with_generated_batch(generated, processed)
+            # update_metrics_with_generated_batch(generated, processed)
             export_images_to_folder(generated, generated_images_dir, start_idx=processed)
             generated_prdc_chunks.append(generated.detach().cpu())
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
@@ -364,8 +365,9 @@ def run_single_eval(
         dcgan = load_dcgan_from_checkpoint(device, Path("dcgan_results") / "dcgan_final.pt")
         while processed < num_samples:
             n = min(gen_batch_size, num_samples - processed)
+            print("Generating images %d/%d..." % (processed + n, num_samples), end="\r")
             generated = sample_dcgan(dcgan, num_samples=n, device=device, batch_size=n)
-            update_metrics_with_generated_batch(generated, processed)
+            # update_metrics_with_generated_batch(generated, processed)
             export_images_to_folder(generated, generated_images_dir, start_idx=processed)
             generated_prdc_chunks.append(generated.detach().cpu())
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
@@ -382,6 +384,7 @@ def run_single_eval(
         )
         while processed < num_samples:
             n = min(min(gen_batch_size, 32), num_samples - processed)
+            print("Generating images %d/%d..." % (processed + n, num_samples), end="\r")
             generated = sample_pixel_unet(
                 pixel,
                 schedule,
@@ -390,7 +393,7 @@ def run_single_eval(
                 image_size=IMAGE_SIZE,
                 batch_size=n,
             )
-            update_metrics_with_generated_batch(generated, processed)
+            # update_metrics_with_generated_batch(generated, processed)
             export_images_to_folder(generated, generated_images_dir, start_idx=processed)
             generated_prdc_chunks.append(generated.detach().cpu())
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
@@ -412,6 +415,7 @@ def run_single_eval(
         )
         while processed < num_samples:
             n = min(min(gen_batch_size, 32), num_samples - processed)
+            print("Generating images %d/%d..." % (processed + n, num_samples), end="\r")
             generated = sample_latent_denoiser(
                 latent,
                 schedule,
@@ -420,7 +424,7 @@ def run_single_eval(
                 device=device,
                 batch_size=n,
             )
-            update_metrics_with_generated_batch(generated, processed)
+            # update_metrics_with_generated_batch(generated, processed)
             export_images_to_folder(generated, generated_images_dir, start_idx=processed)
             generated_prdc_chunks.append(generated.detach().cpu())
             if sum(x.size(0) for x in generated_vis_chunks) < n_vis:
@@ -431,32 +435,33 @@ def run_single_eval(
     else:
         raise ValueError(f"Unknown model_key '{model_key}'")
 
-    fid = float(fid_metric.compute().item())
-    fid_metric.reset()
+    # fid = float(fid_metric.compute().item())
+    # fid_metric.reset()
 
-    kid_mean, kid_std = kid_metric.compute()
-    kid_mean_value = float(kid_mean.item())
-    kid_std_value = float(kid_std.item())
-    kid_metric.reset()
-
-    generated_prdc = torch.cat(generated_prdc_chunks, dim=0)
-    precision, recall, density, coverage = compute_prdc_metrics(
-        real_images=real_images,
-        generated_images=generated_prdc,
-        nearest_k=prdc_nearest_k,
-        feature_device=metrics_device,
-        feature_batch_size=metric_batch_size,
-    )
+    # kid_mean, kid_std = kid_metric.compute()
+    # kid_mean_value = float(kid_mean.item())
+    # kid_std_value = float(kid_std.item())
+    # kid_metric.reset()
+    # print("Computing PRDC metrics...", flush=True)
+    # generated_prdc = torch.cat(generated_prdc_chunks, dim=0)
+    # precision, recall, density, coverage = compute_prdc_metrics(
+    #     real_images=real_images,
+    #     generated_images=generated_prdc,
+    #     nearest_k=prdc_nearest_k,
+    #     feature_device=metrics_device,
+    #     feature_batch_size=metric_batch_size,
+    # )
 
     generated_vis = torch.cat(generated_vis_chunks, dim=0) if generated_vis_chunks else torch.empty(0, 3, IMAGE_SIZE, IMAGE_SIZE)
     save_qualitative_grid(generated_vis, run_dir / "generated_grid.png")
     save_qualitative_grid(real_images, run_dir / "real_grid.png")
 
     del generated_vis
-    del generated_prdc
+    # del generated_prdc
     if device.type == "cuda":
         torch.cuda.empty_cache()
 
+    fid, kid_mean_value, kid_std_value, precision, recall, density, coverage = float("nan"), float("nan"), float("nan"), float("nan"), float("nan"), float("nan"), float("nan")
     return fid, kid_mean_value, kid_std_value, precision, recall, density, coverage
 
 
@@ -498,7 +503,7 @@ def interpolation(model_name:str, interpolation_steps: int, seed_a: int, seed_b:
     run_dir = Path(output_dir) / model_name / f"seed_{seed_a}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    t_values = torch.linspace(0.0, 0.1, steps=interpolation_steps, device=device)
+    t_values = torch.linspace(0.0, 0.5, steps=interpolation_steps, device=device)
 
     model = None
     if model_name == "vae":
