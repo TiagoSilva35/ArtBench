@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1776884919.99823 "main.aux" "main.bbl" "main" 1776884946.92594 0
+["bibtex main"] 1776913978.08144 "main.aux" "main.bbl" "main" 1776915068.24224 0
   "./main.bib" 1776571502.30353 2481 fab5df8af20e38f8b333ebddd3671eb3 ""
   "./splncs04.bst" 1776127787.80359 32145 e60166855197bacbabbb60413b520282 ""
-  "main.aux" 1776884946.8581 6283 15cc7589af1cd3ab19ff2ebb19f69917 "pdflatex"
+  "main.aux" 1776915068.17406 6283 8538a6bded435f55bdd5587524593762 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1776884946.28342 "/home/jncoelho/Documents/DEI/4ano/2semestre/gai/ArtBench/docs/report/main.tex" "main.pdf" "main" 1776884946.92608 0
+["pdflatex"] 1776915067.603 "/home/jncoelho/Documents/DEI/4ano/2semestre/gai/ArtBench/docs/report/main.tex" "main.pdf" "main" 1776915068.24237 0
   "/home/jncoelho/.TinyTeX/texmf-dist/fonts/tfm/jknappen/ec/ecbx0900.tfm" 1136768653 3584 1a7de6c99457381c64abc1a7c545505f ""
   "/home/jncoelho/.TinyTeX/texmf-dist/fonts/tfm/jknappen/ec/ecbx1000.tfm" 1136768653 3584 2d666ecf6d466d8b007246bc2f94d9da ""
   "/home/jncoelho/.TinyTeX/texmf-dist/fonts/tfm/jknappen/ec/ecbx1200.tfm" 1136768653 3584 402da0b29eafbad07963b1224b222f18 ""
@@ -111,16 +111,16 @@
   "/home/jncoelho/.TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1000.600pk" 1776433370.57511 20008 88c2bd5467f5b5c144ee2cbe4f98ca78 ""
   "/home/jncoelho/.TinyTeX/texmf-var/web2c/pdftex/pdflatex.fmt" 1776399041 2241600 cc913ca5e3879d1e42cf6c8ad04ea563 ""
   "/home/jncoelho/.TinyTeX/texmf.cnf" 1776398999 637 edd806fb06a89761a6034e1968af9017 ""
-  "/home/jncoelho/Documents/DEI/4ano/2semestre/gai/ArtBench/docs/report/main.tex" 1776884946.10875 25973 e37031bdf476f618ba0158751e7ac1ed ""
+  "/home/jncoelho/Documents/DEI/4ano/2semestre/gai/ArtBench/docs/report/main.tex" 1776915067.41808 26088 ccf19b17d2f2b1de0d9678f129c93cd4 ""
   "bad_dcgan_lerp_vs_slerp.png" 1776875635.66424 197490 42b888c664a8e89322c7156b1d8a46d2 ""
   "comparison_vae.png" 1776734083.47254 78239 e33e3e8e2deedd899f544314e01bd0c3 ""
   "dcgan_Lerp_vs_Slerp.png" 1776869581.97634 92776 4fb681e96a1335567cc1e0863ce6bcba ""
   "latent_lerp_vs_slerp.png" 1776735456.85165 62092 4777264949233fc7259bf59e3b9be1f7 ""
   "llncs.cls" 1776127787.80359 43401 6bb5881f543faf590aa3e2c129be0e96 ""
-  "main.aux" 1776884946.8581 6283 15cc7589af1cd3ab19ff2ebb19f69917 "pdflatex"
-  "main.bbl" 1776884920.00431 1334 971c77d0278191965b371ad02e2ef92a "bibtex main"
-  "main.out" 1776884946.8581 506 db37d499795d4f98382b565ff469e7b5 "pdflatex"
-  "main.tex" 1776884946.10875 25973 e37031bdf476f618ba0158751e7ac1ed ""
+  "main.aux" 1776915068.17406 6283 8538a6bded435f55bdd5587524593762 "pdflatex"
+  "main.bbl" 1776913978.08824 1334 971c77d0278191965b371ad02e2ef92a "bibtex main"
+  "main.out" 1776915068.17406 506 db37d499795d4f98382b565ff469e7b5 "pdflatex"
+  "main.tex" 1776915067.41808 26088 ccf19b17d2f2b1de0d9678f129c93cd4 ""
   "pixelunet_Lerp_vs_Slerp.png" 1776869572.82997 72092 41c28afc2419aff58026df715349c090 ""
   "sample_dcgan.png" 1776785502.30043 38310 c9c57c0b956a591528f80c78fa2eb6f9 ""
   "sample_latent.png" 1776735318.716 34403 b56f8e684a2985e6d6959f80ab04da8a ""
